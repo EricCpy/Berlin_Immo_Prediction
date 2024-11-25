@@ -1,0 +1,19 @@
+div.figure>p.caption {
+    text-align: center !important;
+    font-style: italic;
+}
+
+/* remove summarytools citation */
+div.st-container>p {
+    display: none;
+}
+
+.book .book-body .page-wrapper .page-inner section.normal table th {
+    text-align: left;
+}
+
+h5.author {
+    font-weight: normal;
+    font-style: italic;
+    margin-top: -1.5em !important;
+}

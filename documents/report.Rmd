@@ -1,0 +1,31 @@
+---
+title: "ML2 Project"
+author: "Eric Jonas, Caro, Naim, Kseniia"
+date: "`r Sys.Date()`"
+output: 
+  bookdown::gitbook:
+    css: "custom.css"
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen = 1, digits = 2)
+source("./code/setup.R") # Knit Directory = project dir (document dir is default set manually to project dir)
+
+full_refit = F
+```
+
+# Introduction
+
+This section provides an overview of the topic and  for our analysis.
+
+## Data Description and Overview
+
+In this section, we describe the dataset and highlight key aspects of its structure and content.
+
+## Objectives
+
+- Identify the models we plan to implement for analysis.  
+- Define the prediction goals and explain their significance in the context of our project.  
+
