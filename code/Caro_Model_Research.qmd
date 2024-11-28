@@ -19,9 +19,7 @@ library(see)
 immo_df <- readRDS(here("data/subset_by_district_immo.rds"))
 ```
 
-# Random Forest Classifier
-
-## Data Preparation
+# Data Preparation
 All variables that aren't useful for the model are removed. This is for 
 saving calculation time for the models. We also have to impute values,
 so the less columns the better to save runtime and thinking time over variables with
@@ -88,7 +86,7 @@ During selection, all remaining character type variables are transformed to fact
 as they represent one of only a few categories. With this, our imputation method
 also works for character type variables. The value imputation follows next.
 
-## Value imputation
+# Value imputation
 ```{r}
 #| include: false
 #gibbs_immo <- mice(immo_mod_df, m = 5, maxit = 50, meth = 'pmm', seed = 600)
@@ -109,9 +107,7 @@ to take next. The resulting object of the mice algorithm holds eight different
 datasets that might be more or less different from one another. For starting off,
 the first dataset is chosen.
 
-# Gradient Boosting Machine (GBM)
-
-## Train and Test Split
+# Train and Test Split
 ```{r}
 set.seed(10)
 train_share <- 0.7
@@ -120,7 +116,7 @@ Immotrain <- Gibbsimmo1[train_idx, ]
 Immotest <- Gibbsimmo1[-train_idx, ]
 ```
 
-## Modelling
+# Gradient Boosting Machine (GBM)
 To fit a solid model, we use cross-validated grid search over a given grid of parameters
 to find the best performing one. By using cross-validation, we include a validation step
 in each loop, so that the model isn't only evaluated on the training data.
@@ -152,7 +148,7 @@ Let's look at the resulting model and the best parameters.
 model
 ```
 
-## Model performance
+# GBM Model performance
 Since our label is a continuous variable, the root mean squared error can be used
 to compare the predicted values with the true values.
 ```{r}
@@ -163,6 +159,42 @@ print(rmse)
 ```{r}
 plot(model)
 ```
+# SVM (Support Vector Machine)
 
+```{r}
+#| include: false
 
+# Define the hyperparameter grid for SVM
+hyper_grid <- expand.grid(
+  C = c(0.1, 1, 10),
+  sigma = c(0.01, 0.1, 1)
+)
+
+# Create a training control object with 5-fold cross-validation
+train_control <- trainControl(method = "cv", number = 5)
+
+# Train the SVM model with cross-validation and grid search
+model <- train(
+  totalRent ~ .,
+  data = Immotrain,
+  method = "svmRadial",
+  trControl = train_control,
+  tuneGrid = hyper_grid
+)
+
+#saveRDS(model, here("data/svm_model.rds"))
+```
+Let's look at the result.
+```{r}
+model
+```
+## SVM Model performance
+```{r}
+predictions <- predict(model, newdata = Immotest)
+rmse <- RMSE(predictions, Immotest$totalRent)
+print(rmse)
+```
+```{r}
+plot(model)
+```
 
