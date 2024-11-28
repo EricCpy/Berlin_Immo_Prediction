@@ -6,6 +6,7 @@ format: html
 
 # Load data and libraries
 ```{r}
+#| include: false
 library(tidyverse)
 library(gbm)
 library(e1071)
@@ -13,6 +14,7 @@ library(mice)
 library(VIM)
 library(caret)
 library(here)
+library(see)
 
 immo_df <- readRDS(here("data/subset_by_district_immo.rds"))
 ```
@@ -63,22 +65,28 @@ table(immo_df$date)
 ```
 Since we don't want to process text data, description and facilities also get
 removed. <br>
-Lastly, telekomHybridOffer only contains 10 or NA for hybrid upload speed. This
-isn't great information, so it gets removed.
+The variable telekomHybridOffer only contains 10 or NA for hybrid upload speed. This
+isn't great information, so it gets removed. <br>
+The streetname gets also removed as it can't serve as a factor and therefore
+isn't useful for a tree model. There are too many different streets.
 ```{r}
 # select needed variables
 immo_mod_df <- immo_df |>
   select(serviceCharge, heatingType, telekomTvOffer, newlyConst, pricetrend,
          balcony, telekomUploadSpeed, totalRent, yearConstructed, noParkSpaces,
          firingTypes, hasKitchen, cellar, baseRent, livingSpace, condition,
-         interiorQual, petsAllowed, streetPlain, lift, typeOfFlat, noRooms,
-         thermalChar, floor, numberOfFloors, garden, regio3, description,
-         heatingCosts, energyEfficiencyClass, lastRefurbish, date)
+         interiorQual, petsAllowed, lift, typeOfFlat, noRooms,
+         thermalChar, floor, numberOfFloors, garden, regio3,
+         heatingCosts, energyEfficiencyClass, lastRefurbish, date)|>
+  mutate_if(is.character, as.factor)
 
 # sort so that label is first column
 immo_mod_df <- immo_mod_df |>
   relocate(totalRent, .before = 1)
 ```
+During selection, all remaining character type variables are transformed to factor
+as they represent one of only a few categories. With this, our imputation method
+also works for character type variables. The value imputation follows next.
 
 ## Value imputation
 ```{r}
@@ -92,6 +100,14 @@ gibbs_immo <- readRDS(here("data/gibbs_immo.rds"))
 # take first generated dataset
 Gibbsimmo1 <- complete(gibbs_immo, 1)
 ```
+To keep the distribution of variables and loose as little information as possible
+when fitting our models, Gibbs sampling is used to impute values through a modelling
+approach. With keeping missing values, we run into the trouble of needing to handling
+them with fitting our models. Especially for a tree classifier, missing values
+in testing data might lead to no result, as information is missing on what node
+to take next. The resulting object of the mice algorithm holds eight different
+datasets that might be more or less different from one another. For starting off,
+the first dataset is chosen.
 
 # Gradient Boosting Machine (GBM)
 
@@ -105,25 +121,48 @@ Immotest <- Gibbsimmo1[-train_idx, ]
 ```
 
 ## Modelling
+To fit a solid model, we use cross-validated grid search over a given grid of parameters
+to find the best performing one. By using cross-validation, we include a validation step
+in each loop, so that the model isn't only evaluated on the training data.
 ```{r}
+#| include: false
 hyper_grid <- expand.grid(
   interaction.depth = c(1, 2, 3),
   n.trees = c(100, 200, 500),
-  shrinkage = c(0.01, 0.1, 0.2)
+  shrinkage = c(0.01, 0.1, 0.2),
+  n.minobsinnode = c(5, 10, 20)
 )
 
-# Create a training control object with cross-validation
+# create a training control object with cross-validation
 train_control <- trainControl(method = "cv", number = 5)
 
-# Train the model with cross-validation and grid search
+# train the model with cross-validation and grid search
 model <- train(
   totalRent ~ .,
   data = Immotrain,
   method = "gbm",
   trControl = train_control,
-  tuneGrid = hyper_grid,
-  na.action = na.omit
+  tuneGrid = hyper_grid
 )
+
+#saveRDS(model, here("data/gbm_model.rds"))
 ```
+Let's look at the resulting model and the best parameters.
+```{r}
+model
+```
+
+## Model performance
+Since our label is a continuous variable, the root mean squared error can be used
+to compare the predicted values with the true values.
+```{r}
+predictions <- predict(model, newdata = Immotest)
+rmse <- RMSE(predictions, Immotest$totalRent)
+print(rmse)
+```
+```{r}
+plot(model)
+```
+
 
 
