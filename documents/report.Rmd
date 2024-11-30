@@ -1,11 +1,19 @@
 ---
 title: "ML2 Project"
-author: "Eric Jonas, Caro, Naim, Kseniia"
+author: "Eric, Caro, Naim, Kseniia"
 date: "`r Sys.Date()`"
 output: 
   bookdown::gitbook:
     css: "custom.css"
     code_folding: hide
+  # if pdf wanted
+  #pdf_document:
+  #  latex_engine: xelatex
+bibliography: references.bib
+csl: norsk-apa-manual.csl
+
+nocite:
+- "@corriebar_apartment_rental_germany_2020"
 ---
 
 ```{r setup, include=FALSE}
@@ -13,19 +21,48 @@ knitr::opts_chunk$set(echo = TRUE)
 options(scipen = 1, digits = 2)
 source("./code/setup.R") # Knit Directory = project dir (document dir is default set manually to project dir)
 
-full_refit = F
+full_refit = T
+output_type = "gitbook" # "gitbook" or "pdf"
 ```
 
-# Introduction
 
-This section provides an overview of the topic and  for our analysis.
+# Introduction  
+Understanding rent prices in Berlin is essential for anyone looking to rent an apartment in the city, given its dynamic housing market and the growing demand for affordable living spaces. To address this, our project focuses on analyzing historical rental data from Berlin in 2020, aiming to uncover insights and develop predictive models that estimate rental prices based on key property attributes and evaluate them on current apartment offers.
 
-## Data Description and Overview
+The following dataset, available at [Kaggle](https://www.kaggle.com/datasets/corrieaar/apartment-rental-offers-in-germany/data), contains information about rental properties listed on ImmoScout24. The data was scraped from ImmoScout24 between February and October 2020 and includes listings from all German federal states. For our project, we will focus exclusively on Berlin and train a model to predict either the `totalRent` or the `basePrice`.  
 
-In this section, we describe the dataset and highlight key aspects of its structure and content.
+## Data Description
+```{r data_overview, echo=FALSE, cache=!full_refit}
+# Display a detailed summary of the dataset
+if(output_type == "gitbook") {
+  print(
+    summarytools::dfSummary(
+      varnumbers   = FALSE,
+      na.col       = FALSE,
+      berlin_data_cleaned, 
+      plain.ascii = FALSE, 
+      style = "grid",
+      graph.magnif = .5
+      ), 
+    method = 'render')
+} else {
+  str(berlin_data_cleaned)
+}
+```
 
-## Objectives
+## Objectives  
 
-- Identify the models we plan to implement for analysis.  
-- Define the prediction goals and explain their significance in the context of our project.  
+### Modeling Objectives  
+- **Predict Missing Values**:  
+  Our goal is to impute the missing values in the `totalRent` column and use this data to train a predictive model. We will then compare the performance of this model with one trained on the original, non-imputed data to assess the impact of imputation on model accuracy.
 
+- **Model Selection and Comparison**:  
+  We aim to train a series of tree-based models on the dataset, starting from simple decision trees that can provide explainable predictions and gradually progressing to more complex models such as Random Forests. Additionally, we will compare the performance of these tree-based methods with Support Vector Machine (SVM) regression to determine which approach yields the best results.  
+
+# Data Overview and Cleaning
+
+# Models
+
+# References
+
+<div id="refs"></div>
