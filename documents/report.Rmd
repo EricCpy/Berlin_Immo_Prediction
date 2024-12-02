@@ -3,12 +3,14 @@ title: "ML2 Project"
 author: "Eric Jonas, Caroline Graebel, Naim Iskandar Zahari, Kseniia Holovchenko"
 date: "`r Sys.Date()`"
 output: 
-  #bookdown::gitbook:
-  #  css: "custom.css"
-  #  code_folding: hide
+  bookdown::gitbook:
+    css: "custom.css"
+    code_folding: hide
+    split_by: none
+    self_contained: true
   # if pdf wanted
-  pdf_document:
-    latex_engine: xelatex
+  #pdf_document:
+  #  latex_engine: xelatex
 bibliography: references.bib
 csl: norsk-apa-manual.csl
 nocite:
@@ -20,8 +22,8 @@ knitr::opts_chunk$set(echo = TRUE)
 options(scipen = 1, digits = 2)
 source("./code/setup.R") # Knit Directory = project dir (document dir is default set manually to project dir)
 
-full_refit = T
-output_type = "pdf" # "gitbook" or "pdf"
+full_refit = F
+output_type = "gitbook" # "gitbook" or "pdf"
 ```
 
 

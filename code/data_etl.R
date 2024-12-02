@@ -23,7 +23,8 @@ berlin_data_cleaned <- berlin_data_cleaned %>%
   ) %>%
   mutate(
     geo_plz = as.character(geo_plz)
-  )
+  ) %>%
+  distinct()
 
 # if we are only allowed to use max 2000 obversations:
 sub_df <- berlin_data_cleaned |>
