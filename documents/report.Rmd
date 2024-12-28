@@ -26,13 +26,52 @@ full_refit = F
 output_type = "gitbook" # "gitbook" or "pdf"
 ```
 
+# Introduction
 
-# Introduction  
 Understanding rent prices in Berlin is essential for anyone looking to rent an apartment in the city, given its dynamic housing market and the growing demand for affordable living spaces. To address this, our project focuses on analyzing historical rental data from Berlin in 2020, aiming to uncover insights and develop predictive models that estimate rental prices based on key property attributes and evaluate them on current apartment offers.
 
-The following dataset, available at [Kaggle](https://www.kaggle.com/datasets/corrieaar/apartment-rental-offers-in-germany/data), contains information about rental properties listed on ImmoScout24. The data was scraped from ImmoScout24 between February and October 2020 and includes listings from all German federal states. For our project, we will focus exclusively on Berlin and train a model to predict either the `totalRent` or the `basePrice`.  
+The following dataset, available at [Kaggle](https://www.kaggle.com/datasets/corrieaar/apartment-rental-offers-in-germany/data), contains information about rental properties listed on ImmoScout24. The data was scraped from ImmoScout24 between February and October 2020 and includes listings from all German federal states. For our project, we will focus exclusively on Berlin and train a model to predict either the `totalRent` or the `basePrice`.
 
 ## Data Description
+
+The data provided in the Kaggle dataset consists of approximately 268,000 rental listings. In the dataset, the information from the rental listings are structured in a CSV file with 49 columns. The columns include:
+
+-   Geographical information (state, city name and zip code)
+
+-   Property information (construction year, flat type, heating type and number of rooms)
+
+-   Total rent, base rent and service charge (in Euros)
+
+The rental listing dataset contains 5 data types:
+
+-   string
+
+-   integer
+
+-   boolean
+
+-   date
+
+-   other (ID key)
+
+### Nominal fields
+
+Several nominal fields in the dataset include heatingType, petsAllowed and interiorQual.
+
+### Boolean fields
+
+The 6 boolean fields in the dataset include newlyConst, balcony, hasKitchen, cellar, lift and garden.
+
+### Discrete fields
+
+Multiple discrete fields in the dataset include noRooms and picturecount.
+
+### Continuous fields
+
+The continuous fields in the dataset include totalRent, baseRent and livingSpace.
+
+Further explanation of relevant columns for historical rental analysis and predictive modelling will be provided in the following section of the report.
+
 ```{r data_overview, echo=FALSE, cache=!full_refit}
 # Display a detailed summary of the dataset
 if(output_type == "gitbook") {
@@ -51,19 +90,25 @@ if(output_type == "gitbook") {
 }
 ```
 
-## Objectives  
+## Objectives
 
-### Modeling Objectives  
-- **Predict Missing Values**:  
-  Our goal is to impute the missing values in the `totalRent` column and use this data to train a predictive model. We will then compare the performance of this model with one trained on the original, non-imputed data to assess the impact of imputation on model accuracy.
+### Modeling Objectives
 
-- **Model Selection and Comparison**:  
-  We aim to train a series of tree-based models on the dataset, starting from simple decision trees that can provide explainable predictions and gradually progressing to more complex models such as Random Forests. Additionally, we will compare the performance of these tree-based methods with Support Vector Machine (SVM) regression to determine which approach yields the best results.  
+-   **Predict Missing Values**:\
+    Our goal is to impute the missing values in the `totalRent` column and use this data to train a predictive model. We will then compare the performance of this model with one trained on the original, non-imputed data to assess the impact of imputation on model accuracy.
+
+-   **Model Selection and Comparison**:\
+    We aim to train a series of tree-based models on the dataset, starting from simple decision trees that can provide explainable predictions and gradually progressing to more complex models such as Random Forests. Additionally, we will compare the performance of these tree-based methods with Support Vector Machine (SVM) regression to determine which approach yields the best results.
 
 # Data Overview and Cleaning
+
+## Data Preparation
+
+## Imputation
 
 # Models
 
 # References
 
-<div id="refs"></div>
+::: {#refs}
+:::
