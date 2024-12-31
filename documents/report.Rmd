@@ -26,6 +26,11 @@ full_refit = F
 output_type = "gitbook" # "gitbook" or "pdf"
 ```
 
+```{r}
+#| include: false
+library(mice)
+```
+
 # Introduction
 
 Understanding rent prices in Berlin is essential for anyone looking to rent an apartment in the city, given its dynamic housing market and the growing demand for affordable living spaces. To address this, our project focuses on analyzing historical rental data from Berlin in 2020, aiming to uncover insights and develop predictive models that estimate rental prices based on key property attributes and evaluate them on current apartment offers.
@@ -34,7 +39,7 @@ The following dataset, available at [Kaggle](https://www.kaggle.com/datasets/cor
 
 ## Data Description
 
-The data provided in the Kaggle dataset consists of approximately 268,000 rental listings. In the dataset, the information from the rental listings are structured in a CSV file with 49 columns. The columns include:
+The data provided in the Kaggle dataset consists of approximately 268,000 rental listings in Germany. In the dataset, the information from the rental listings are structured in a CSV file with 49 columns. The columns include:
 
 -   Geographical information (state, city name and zip code)
 
@@ -72,6 +77,78 @@ The continuous fields in the dataset include totalRent, baseRent and livingSpace
 
 Further explanation of relevant columns for historical rental analysis and predictive modelling will be provided in the following section of the report.
 
+## Objectives
+
+### Modeling Objectives
+
+-   **Predict Missing Values**:\
+    Our goal is to impute the missing values in the `totalRent` column and use this data to train a predictive model. We will then compare the performance of this model with one trained on the original, non-imputed data to assess the impact of imputation on model accuracy.
+
+-   **Model Selection and Comparison**:\
+    We aim to train a series of tree-based models on the dataset, starting from simple decision trees that can provide explainable predictions and gradually progressing to more complex models such as Random Forests. Additionally, we will compare the performance of these tree-based methods with Support Vector Machine (SVM) regression to determine which approach yields the best results.
+
+# Data Overview and Cleaning
+
+Historical data of rental listings in Berlin is essential in achieving the objective of this project. The ImmoScout24 dataset in Kaggle provides rental listings across Germany. Firstly, Berlin data needs to be retrieved from the entire dataset. Next, the data imputation is necessary to replace missing values in relevant fields without altering the validity in the Berlin dataset. Finally, the machine learning models can be developed and compared fairly to determine the best outcome.
+
+## Data Preparation
+
+The Kaggle dataset is maintained in an CSV file that consists of approximately 268,000 rental listings in Germany. To prepare the Berlin rental listing dataset, only the listings in Berlin are retrieved for this project. Upon filtering for the Berlin listings, more than 10,000 listings are remaining.
+
+Next, removing irrelevant fields from the Berlin dataset would be efficient for developing the machine learning models in the subsequent processes. Determining the irrelevant fields from the entire dataset before developing a model requires manual intervention. The fields that were removed from the dataset are as listed with the reasons as follows:
+
+-   `regio1`
+
+    -   Contains the value "Berlin" only after filtering for Berlin listings
+
+-   `scoutId`
+
+    -   Contains unique key values that are not helpful for analysis
+
+-   `geo_plz`
+
+    -   Column becomes redundant after filtering for Berlin listings
+
+-   `telekomHybridUploadSpeed`
+
+    -   Mostly missing values and irrelevant to rental price
+
+-   `houseNumber`
+
+    -   Too granular and irrelevant to rental price
+
+-   `electricityKwhPrice`, `electricityBasePrice`, `energyEfficiencyClass`
+
+    -   Irrelevant for rental price analysis
+
+-   `description`, `facilities`
+
+    -   Irrelevant for tree-based models development because the fields are long text fields
+
+-   `date`
+
+    -   Irrelevant for analysis because the field represents the date when data scraping was performed
+
+-   `yearConstructedRange`, `baseRentRange`, `livingSpaceRange`, `noRoomsRange`
+
+    -   Fields are not useful for analysis because the values are aggregated
+
+Upon removing the irrelevant fields from the Berlin dataset, the remaining fields include:
+
+-   Geographic information
+
+    -   `regio3`
+
+-   Property facilities
+
+    -   `heatingType`, `telekomTvOffer`, `newlyConst`, `balcony`, `yearConstructed`, `noParkSpaces`, `firingTypes`, `hasKitchen`, `cellar`, `livingSpace`, `condition`, `interiorQual`, `petsAllowed`, `lift`, `typeOfFlat`, `noRooms`, `thermalChar`, `floor`, `numberOfFloors`, `garden`, `lastRefurbish`
+
+-   Rent price and charges
+
+    -   `baseRent`, `totalRent`, `serviceCharge`, `heatingCosts`, `pricetrend`
+
+A summary for the Berlin dataset are available below.
+
 ```{r data_overview, echo=FALSE, cache=!full_refit}
 # Display a detailed summary of the dataset
 if(output_type == "gitbook") {
@@ -90,21 +167,23 @@ if(output_type == "gitbook") {
 }
 ```
 
-## Objectives
-
-### Modeling Objectives
-
--   **Predict Missing Values**:\
-    Our goal is to impute the missing values in the `totalRent` column and use this data to train a predictive model. We will then compare the performance of this model with one trained on the original, non-imputed data to assess the impact of imputation on model accuracy.
-
--   **Model Selection and Comparison**:\
-    We aim to train a series of tree-based models on the dataset, starting from simple decision trees that can provide explainable predictions and gradually progressing to more complex models such as Random Forests. Additionally, we will compare the performance of these tree-based methods with Support Vector Machine (SVM) regression to determine which approach yields the best results.
-
-# Data Overview and Cleaning
-
-## Data Preparation
-
 ## Imputation
+
+Missing values in testing data might lead to no result especially for a tree classifier, as information on what node to take next is missing.
+
+**Gibbs sampling** is used to impute values. A modelling approach of Gibbs sampling keeps the distribution of variables and lose as little information as possible when fitting our models. The resulting object of the mice algorithm holds eight different datasets that might be more or less different from one another. For starting off, the first dataset is chosen.
+
+```{r}
+#| include: false
+#gibbs_immo <- mice(immo_mod_df, m = 5, maxit = 50, meth = 'pmm', seed = 600)
+
+#saveRDS(gibbs_immo, here("data/gibbs_immo.rds"))
+
+#gibbs_immo <- readRDS(here("data/gibbs_immo.rds"))
+
+## take first generated dataset
+#Gibbsimmo1 <- complete(gibbs_immo, 1)
+```
 
 # Models
 
