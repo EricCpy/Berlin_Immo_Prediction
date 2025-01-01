@@ -3,18 +3,20 @@ title: "ML2 Project"
 author: "Eric Jonas, Caroline Graebel, Naim Iskandar Zahari, Kseniia Holovchenko"
 date: "`r Sys.Date()`"
 output: 
+  # if pdf wanted
   bookdown::gitbook:
     css: "custom.css"
     code_folding: hide
     split_by: none
     self_contained: true
-  # if pdf wanted
   #pdf_document:
   #  latex_engine: xelatex
 bibliography: references.bib
 csl: norsk-apa-manual.csl
 nocite:
 - "@corriebar_apartment_rental_germany_2020"
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -26,11 +28,6 @@ full_refit = F
 output_type = "gitbook" # "gitbook" or "pdf"
 ```
 
-```{r}
-#| include: false
-library(mice)
-```
-
 # Introduction
 
 Understanding rent prices in Berlin is essential for anyone looking to rent an apartment in the city, given its dynamic housing market and the growing demand for affordable living spaces. To address this, our project focuses on analyzing historical rental data from Berlin in 2020, aiming to uncover insights and develop predictive models that estimate rental prices based on key property attributes and evaluate them on current apartment offers.
@@ -40,114 +37,55 @@ The following dataset, available at [Kaggle](https://www.kaggle.com/datasets/cor
 ## Data Description
 
 The data provided in the Kaggle dataset consists of approximately 268,000 rental listings in Germany. In the dataset, the information from the rental listings are structured in a CSV file with 49 columns. The columns include:
-
 -   Geographical information (state, city name and zip code)
-
 -   Property information (construction year, flat type, heating type and number of rooms)
-
 -   Total rent, base rent and service charge (in Euros)
-
-The rental listing dataset contains 5 data types:
-
--   string
-
--   integer
-
--   boolean
-
--   date
-
--   other (ID key)
-
-### Nominal fields
-
-Several nominal fields in the dataset include heatingType, petsAllowed and interiorQual.
-
-### Boolean fields
-
-The 6 boolean fields in the dataset include newlyConst, balcony, hasKitchen, cellar, lift and garden.
-
-### Discrete fields
-
-Multiple discrete fields in the dataset include noRooms and picturecount.
-
-### Continuous fields
-
-The continuous fields in the dataset include totalRent, baseRent and livingSpace.
-
-Further explanation of relevant columns for historical rental analysis and predictive modelling will be provided in the following section of the report.
 
 ## Objectives
 
-### Modeling Objectives
+- **Data Understanding and Cleaning**:\
+  Before training a model, it is essential to thoroughly understand and clean the data. To achieve this, we will provide a concise visual overview of the dataset to highlight its key characteristics and identify potential issues.
 
 -   **Predict Missing Values**:\
-    Our goal is to impute the missing values in the `totalRent` column and use this data to train a predictive model. We will then compare the performance of this model with one trained on the original, non-imputed data to assess the impact of imputation on model accuracy.
+    Because many columns in our data contain missing values, one of our goals is to impute these values and use the resulting data to train a predictive model. We will then compare the performance of this model to one trained on the original, non-imputed data to assess the impact of imputation on model accuracy.
 
 -   **Model Selection and Comparison**:\
-    We aim to train a series of tree-based models on the dataset, starting from simple decision trees that can provide explainable predictions and gradually progressing to more complex models such as Random Forests. Additionally, we will compare the performance of these tree-based methods with Support Vector Machine (SVM) regression to determine which approach yields the best results.
+    We aim to train a series of tree-based models on the dataset to predict the `baseRent` of an apartment, starting from simple decision trees that can provide explainable predictions and gradually progressing to more complex models such as Random Forests. Additionally, we will compare the performance of these tree-based methods with Support Vector Machine (SVM) regression to determine which approach yields the best results.
 
 # Data Overview and Cleaning
 
-Historical data of rental listings in Berlin is essential in achieving the objective of this project. The ImmoScout24 dataset in Kaggle provides rental listings across Germany. Firstly, Berlin data needs to be retrieved from the entire dataset. Next, the data imputation is necessary to replace missing values in relevant fields without altering the validity in the Berlin dataset. Finally, the machine learning models can be developed and compared fairly to determine the best outcome.
+Historical rental listing data for Berlin is crucial for achieving the objectives of this project. The ImmoScout24 dataset provides rental listings from all of Germany. To begin, we need to extract data specific to Berlin from the full dataset. This extracted data contains numerous missing values and redundant entries, making it essential to first thoroughly understand and clean the dataset before proceeding.
 
 ## Data Preparation
 
-The Kaggle dataset is maintained in an CSV file that consists of approximately 268,000 rental listings in Germany. To prepare the Berlin rental listing dataset, only the listings in Berlin are retrieved for this project. Upon filtering for the Berlin listings, more than 10,000 listings are remaining.
+After filtering for Berlin listings, more than 10,000 entries remain. The next step is to remove irrelevant fields from the dataset, which will help with the development of machine learning models in subsequent stages. Identifying and removing these irrelevant fields requires a thorough understanding of the dataset. A brief explanation of each column can be found on Kaggle. Below is a list of the fields removed, along with the reasons for their exclusion:
 
-Next, removing irrelevant fields from the Berlin dataset would be efficient for developing the machine learning models in the subsequent processes. Determining the irrelevant fields from the entire dataset before developing a model requires manual intervention. The fields that were removed from the dataset are as listed with the reasons as follows:
+| Column Name                | Reason for Removal                                                                                   |
+|----------------------------|------------------------------------------------------------------------------------------------------|
+| regio1                     | Redundant, as it contains only "Berlin."                                                             |
+| geo_bln                    | Redundant, as it contains only "Berlin."                                                             |
+| geo_krs                    | Redundant, as it contains only "Berlin."                                                             |
+| regio2                     | Redundant, as it contains only "Berlin."                                                             |
+| street                     | Redundant information; contains the same data as `street_plain`, but of lower quality.               |
+| telekomTvOffer             | Irrelevant, as all listings can offer this service.                                                  |
+| telekomHybridUploadSpeed   | Unnecessary, with mostly missing (NA) values.                                                        |
+| scoutId                    | Unique ID, not useful for analysis.                                                                  |
+| yearConstructedRange       | Artificial column, not relevant to the analysis.                                                     |
+| houseNumber                | Too granular for analysis; not relevant.                                                             |
+| baseRentRange              | Artificial column, not needed for analysis.                                                          |
+| livingSpaceRange           | Artificial column, not needed for analysis.                                                          |
+| noRoomsRange               | Artificial column, not needed for analysis.                                                          |
+| electricityKwhPrice        | Deprecated since 2020; irrelevant as the dataset lacks earlier data.                                 |
+| electricityBasePrice       | Deprecated since 2020; irrelevant.                                                                   |
+| energyEfficiencyClass      | Deprecated since 2020; irrelevant.                                                                   |
+| date                       | Redundant, as it duplicates `date_full`.                                                             |
+| description                | Redundant, as it only repeats information already provided in other columns.                         |
+| facilities                 | Redundant, as it only repeats information already provided in other columns.                         |
+| totalRent                  | Artificial column, a sum of baseRent, heatingCosts, and serviceCharge; unnecessary for analysis.     |
+| newlyConst                 | Artificial column, constructionYear >= 2017 ? TRUE : FALSE                                           |
 
--   `regio1`
-
-    -   Contains the value "Berlin" only after filtering for Berlin listings
-
--   `scoutId`
-
-    -   Contains unique key values that are not helpful for analysis
-
--   `geo_plz`
-
-    -   Column becomes redundant after filtering for Berlin listings
-
--   `telekomHybridUploadSpeed`
-
-    -   Mostly missing values and irrelevant to rental price
-
--   `houseNumber`
-
-    -   Too granular and irrelevant to rental price
-
--   `electricityKwhPrice`, `electricityBasePrice`, `energyEfficiencyClass`
-
-    -   Irrelevant for rental price analysis
-
--   `description`, `facilities`
-
-    -   Irrelevant for tree-based models development because the fields are long text fields
-
--   `date`
-
-    -   Irrelevant for analysis because the field represents the date when data scraping was performed
-
--   `yearConstructedRange`, `baseRentRange`, `livingSpaceRange`, `noRoomsRange`
-
-    -   Fields are not useful for analysis because the values are aggregated
-
+<br>
 Upon removing the irrelevant fields from the Berlin dataset, the remaining fields include:
-
--   Geographic information
-
-    -   `regio3`
-
--   Property facilities
-
-    -   `heatingType`, `telekomTvOffer`, `newlyConst`, `balcony`, `yearConstructed`, `noParkSpaces`, `firingTypes`, `hasKitchen`, `cellar`, `livingSpace`, `condition`, `interiorQual`, `petsAllowed`, `lift`, `typeOfFlat`, `noRooms`, `thermalChar`, `floor`, `numberOfFloors`, `garden`, `lastRefurbish`
-
--   Rent price and charges
-
-    -   `baseRent`, `totalRent`, `serviceCharge`, `heatingCosts`, `pricetrend`
-
-A summary for the Berlin dataset are available below.
 
 ```{r data_overview, echo=FALSE, cache=!full_refit}
 # Display a detailed summary of the dataset
@@ -167,6 +105,172 @@ if(output_type == "gitbook") {
 }
 ```
 
+
+
+## Data Analysis
+
+```{r data_analysis_setup, echo=FALSE, cache=!full_refit}
+berlin_data_cleaned_visualizations <- berlin_data_cleaned
+berlin_data_cleaned_visualizations$district_label <- paste(berlin_data_cleaned_visualizations$DISTRICT_ID, 
+                                                           berlin_data_cleaned_visualizations$district, sep = " - ")
+
+berlin_data_cleaned_visualizations$log_baseRent <- log(berlin_data_cleaned_visualizations$baseRent)
+  
+berlin_data_district_statistics <- berlin_data_cleaned_visualizations %>%
+  filter(!is.na(district)) %>%
+  group_by(district, district_label) %>% 
+  summarize(count_apartments = n(),
+            median_base_rent = median(baseRent, na.rm = TRUE),
+            , .groups = 'drop') %>%
+  left_join(berlin_district_geo, by = c("district" = "DISTRICT_NAME")) %>%
+  filter(!is.na(district))
+```
+
+To understand the contents of the columns in our dataset and how they interact, we visualize them. We will focus on how the districts are distributed across our dataset and how attributes, such as the `baseRent`, are distributed within them. Additionally, we will examine the apartments in our dataset and investigate whether there are any correlations present.
+
+
+### District-Level Apartment Overview and Model Considerations
+
+As seen in the data overview chapter, our dataset does not include the districts directly but only the postal codes (`geo_plz`). To derive the districts, we join our dataset with a reference dataset that maps Berlin's postal codes to districts. It is important to note that some postal codes belong to multiple districts. For simplicity, we associate each postal code with only one district. This simplification introduces a bias towards districts which appear earlier in our data, The following figure displays the frequency of each district represented in our dataset.
+
+```{r dataAnalysisDistrictCount, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.align='center', fig.cap= "Apartment Count by District in Berlin", fig.width=8, fig.height=4.5}
+districts_count_map <- ggplot() +
+  geom_sf(data = berlin_data_district_statistics, aes(geometry = geometry, fill = count_apartments)) +
+  geom_sf_text(data = berlin_data_district_statistics, aes(geometry = geometry, label = DISTRICT_ID), size = 3, color = "black") +
+  scale_fill_gradient(low = "lightblue", high = "dodgerblue4", name = "Apartment Count") +
+  theme_void() +
+  theme(legend.position = "right", plot.title = element_text(hjust = 0.5)) +
+  guides(fill = "none")
+
+districts_count_barchart <- ggplot(berlin_data_district_statistics, 
+                                   aes(x = reorder(district_label, count_apartments), y = count_apartments, fill = count_apartments)) +
+  geom_col() +
+  scale_fill_gradient(low = "lightblue", high = "dodgerblue4", name = "Apartment Count") +
+  labs(x = "District", y = "Apartment Count") +
+  theme_minimal() +
+  coord_flip() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        plot.title = element_text(hjust = 0.5)) +
+  guides(fill = "none")
+
+grid.arrange(districts_count_map, districts_count_barchart, ncol=2, widths = c(1.5, 2))
+```
+
+We observe that districts in central and eastern parts of Berlin are more frequently represented in the dataset compared to those in the southern or peripheral areas. Based on this we will evaluate later whether our model is bias towards districts that appear more frequently.
+
+Furthermore, we analyzed the median prices across different districts. Our initial assumption was that districts closer to the city center have a higher median price compared to those in the outskirts. This assumption is based on the knowledge  that central areas typically offer superior infrastructure and greater access to amenities and activity hubs.
+
+```{r dataAnalysisDistrictRent, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, fig.align='center', fig.width=8, fig.height=4.5, fig.cap= "Median Price by District in Berlin"}
+districts_median_rent_map <- ggplot() +
+  geom_sf(data = berlin_data_district_statistics, aes(geometry = geometry, fill = median_base_rent)) +
+  geom_sf_text(data = berlin_data_district_statistics, aes(geometry = geometry, label = DISTRICT_ID), size = 3, color = "black") +
+  scale_fill_gradient(low = "lightyellow", high = "darkorange", name = "Median Rent") +
+  theme_void() +
+  theme(legend.position = "right", plot.title = element_text(hjust = 0.5)) +
+  guides(fill = "none")
+
+berlin_data_cleaned_log <- berlin_data_cleaned_visualizations %>%
+  filter(!is.na(district) & !is.na(log_baseRent) & is.finite(log_baseRent)) %>%
+  left_join(berlin_data_district_statistics, by = "district_label")
+
+districts_rent_boxplot <- ggplot(berlin_data_cleaned_log, aes(x = reorder(district_label, log_baseRent, FUN = median), 
+                                    y = log_baseRent, fill = median_base_rent)) +
+  geom_boxplot() +
+  scale_fill_gradient(low = "lightyellow", high = "darkorange", name = "Median Rent") +
+  labs(x = "District", y = "Log Base Rent") +
+  theme_minimal() +
+  coord_flip() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1.5), 
+        plot.title = element_text(hjust = 0.5)) +
+  guides(fill = "none")
+
+grid.arrange(districts_median_rent_map, districts_rent_boxplot, ncol=2, widths = c(1.5, 2))
+```
+
+Our initial assumption is confirmed: districts closer to the city center generally have higher rental prices, with Mitte standing out with several significant outliers. These outliers could pose challenges for our model if it lacks the robustness to accommodate them. Interestingly, when comparing this plot with the earlier analysis of apartment counts per district, the correlation between rental prices and the number of apartments appears weak. For example, Treptow-Köpenick, despite having a high number of apartments, shows relatively low rental prices.
+
+
+### Analysis of Rental Characteristics
+
+The next step in understanding our dataset is to analyze characteristics of the apartments. This gives us an initial insight into the typical apartment types in our data and helps identify anomalies. First, we examine the distribution of the number of rooms across the apartments.
+
+```{r dataAnalysisRooms, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.align='center', fig.cap= "Count of Apartments by Number of Rooms", fig.width=6, fig.height=4}
+berlin_data_cleaned_visualizations$noRoomsRounded <- round(berlin_data_cleaned_visualizations$noRooms)
+
+ggplot(berlin_data_cleaned_visualizations, aes(x = factor(noRoomsRounded))) +
+  geom_bar(fill = "steelblue", alpha = 0.7) +
+  labs(x = "Number of Rooms",
+       y = "Count") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+From the distribution, it is evident that the vast majority of apartments have a reasonable number of rooms, ranging between 1 and 8. However, there is one significant outlier, an apartment with an astonishing 100 rooms. While most of the data falls within expected ranges, such an outlier could have a disproportionate influence on our analysis and modeling.
+
+One of our hypotheses about this dataset is that there should be a strong positive correlation between the number of rooms and the living space. Intuitively, as the number of rooms increases, the total living space is also expected to increase. Similarly, for smaller apartments, fewer rooms should correspond to smaller living spaces.  
+To visualize the relationship between living space and the number of rooms, we decided to exclude room counts that appear fewer than 10 times in the following visualization. This threshold ensures that the data we analyze is statistically meaningful. As a result, we focus on apartments with room counts greater than 8 for the following boxplot.
+
+```{r dataAnalysisRoomsLivingspace, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.align='center', fig.cap= "Living Space Distribution by Number of Rooms", fig.width=6, fig.height=4}
+berlin_data_room_no_outliers <- berlin_data_cleaned_visualizations %>%
+  filter(noRoomsRounded <= 8)
+
+# Boxplot
+ggplot(berlin_data_room_no_outliers, aes(x = factor(noRoomsRounded), y = livingSpace)) +
+  geom_boxplot(aes(fill = factor(noRoomsRounded)), alpha = 0.7) +
+  labs(x = "Number of Rooms", 
+       y = "Living Space (Square Meters)") +
+  scale_fill_brewer(palette = "Blues") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  guides(fill = "none")
+```
+
+The filtered boxplot confirms this hypothesis. Even for a room count like 8, which only has 16 occurrences, the trend remains consistent. Larger apartments have larger living spaces, which aligns with our expectations.  
+A noteworthy observation is the prevalence of outliers in apartments with up to 5 rooms, especially for those with 3 and 4 rooms. These outliers are highly dispersed, potentially indicating that some of these entries might represent office spaces rather than standard apartments.
+
+Another important aspect of our dataset is the condition of the apartments. This feature provides qualitative information about the state of the properties, with categories like *mint_condition*, *refurbished*, and *renovated*. However, the definitions of these categories are not immediately clear, particularly the distinction between "mint_condition" and the other classifications.  
+To better understand these categories, we compare the condition of the apartments to their rent values. This comparison allows us to infer potential meanings or differences between the conditions.
+
+```{r dataAnalysisConditions, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.align='center', fig.cap= "Base Rent by Conditions", fig.width=6, fig.height=4}
+ggplot(berlin_data_cleaned_visualizations, aes(x = reorder(condition, baseRent, FUN = median), y = baseRent, fill = condition)) +
+  geom_boxplot() +
+  scale_fill_brewer(palette = "Blues") +
+  scale_y_log10() +
+  coord_flip() +
+  labs(title = "Base Rent by Condition", x = "Condition", y = "Base Rent (EUR)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 10), axis.text.y = element_text(size = 10)) +
+  guides(fill = "none")
+```
+
+A clear order emerges among the apartment conditions. Apartments classified as *mint_condition* appear to represent the best quality. Similarly, *refurbished* properties seem to have a better condition than *renovated*. This ordering aligns with the intuition that better maintained or new  apartments tend to have higher rents. Outliers might represent unique cases, such as misclassifications, unusual rental agreements or exceptional property features.  
+Another observation is that the missing entries (`NA`) have a wide interquartile range and contain several outliers, which indicates that these entries are spread across categories and may not represent a single uniform condition. This variability could introduce noise into our analysis and modeling. To address this, we aim to impute the missing condition values.
+
+
+### Exploring Correlations Between Variables
+
+To better understand the relationships between variables in our dataset, we analyzed the correlations between them, focusing on how the predictors relate to the `baseRent`. This helps us identify expected patterns and uncover any unexpected relationships.
+
+```{r dataAnalysisCorrelations, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.align='center', fig.cap= "Correlation Matrix", fig.width=7, fig.height=7}
+numeric_vars <- berlin_data_cleaned_visualizations %>% select_if(is.numeric)
+cor_matrix <- cor(numeric_vars,  use = "complete.obs")
+corrplot::corrplot(cor_matrix, method = "circle", type = "lower", 
+                   tl.cex = 0.8,
+                   mar = c(0, 0, 1, 0))
+```
+
+From the correlation analysis, we observed several expected relationships:
+- Apartments with a high `baseRent` tend to have:
+  - Higher `serviceCharges`, `heatingCosts` (additional rental costs)
+  - Larger `livingSpace`, more rooms (`noRooms`)
+
+These findings align with our expectations, as more expensive apartments generally offer more space and additional services.
+
+One initially confusing correlation was between `thermalChar` and `yearConstructed`. After further research, we found that `thermalChar` represents the apartment's energy efficiency level, which is often linked to the building's construction year. Newer buildings tend to be more energy-efficient due to modern construction standards and regulations.  
+Interestingly, this energy efficiency only shows a weak negative correlation with `heatingCosts`. Contrary to our inital expectations, more energy-efficient apartments appear to incur slightly higher heating costs. One possible explanation is the cost disparity between energy sources, in 2020 and even today, dirtier energy sources are often more affordable than renewable or sustainable alternatives.
+
+
+
 ## Imputation
 
 Missing values in testing data might lead to no result especially for a tree classifier, as information on what node to take next is missing.
@@ -185,7 +289,17 @@ Missing values in testing data might lead to no result especially for a tree cla
 #Gibbsimmo1 <- complete(gibbs_immo, 1)
 ```
 
+
+
 # Models
+
+
+## Evaluation on current overs
+Why it might fail?
+Market Demand and Supply: An imbalance between the number of available apartments and the demand from potential tenants leads to price fluctuations. High demand with limited supply results in increased rents. 
+Economic Conditions: The general economic situation and income development of the population in Berlin play a role in determining rental prices. 
+(https://eichenglobal.com/en/blog/mietspiegel-2024-berlin/)
+Government Policies: Regulations such as rent caps or tenant protection laws can influence rental prices by limiting increases and affecting market dynamics. (https://www.pwc.de/en/real-estate/rent-cap-and-regulation-of-the-real-estate-market.html)
 
 # References
 

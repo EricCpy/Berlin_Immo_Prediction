@@ -1,5 +1,6 @@
-berlin_data_cleaned <-readRDS("data/immo_data_berlin.rds")
-berlin_data_cleaned <- berlin_data_cleaned %>%
+# ----- Berlin Data -----
+berlin_data_semi_cleaned <-readRDS("data/immo_data_berlin.rds")
+berlin_data_cleaned <- berlin_data_semi_cleaned %>%
   select(
     -regio1,                     # Remove "regio1" column - contains only "berlin", redundant information.
     -geo_bln,                    # Remove "geo_bln" column - contains only "berlin", redundant information.
@@ -19,18 +20,55 @@ berlin_data_cleaned <- berlin_data_cleaned %>%
     -energyEfficiencyClass,      # Remove "energyEfficiencyClass" column - deprecated since 2020, irrelevant.
     -date,                       # Remove "date" column - same as date_full
     -description,                # Remove "description" only contains information already provided by other columns as text
-    -facilities                  # Remove "facilities" only contains information already provided by other columns as text
+    -facilities,                 # Remove "facilities" only contains information already provided by other columns as text
+    -totalRent,                   # Remove "totalRent" artificial column, sum of baseRent, heatingCosts and serviceCharge 
+    -newlyConst                  # Remove "newlyConst" artifical column 
   ) %>%
   mutate(
     geo_plz = as.character(geo_plz)
   ) %>%
   distinct()
 
-# if we are only allowed to use max 2000 obversations:
+postal_data <- read.csv("data/postalcodes_with_districts_berlin.csv") %>%
+  mutate(Postcode = as.character(Postcode)) %>%
+  rename(district = District) %>%
+  distinct(Postcode, .keep_all = TRUE)
+
+bezirke_name_id <- tribble(
+  ~DISTRICT_NAME, ~DISTRICT_ID,
+  "Mitte", "01",
+  "Friedrichshain-Kreuzberg", "02",
+  "Pankow", "03",
+  "Charlottenburg-Wilmersdorf", "04",
+  "Spandau", "05",
+  "Steglitz-Zehlendorf", "06",
+  "Tempelhof-Schöneberg", "07",
+  "Neukölln", "08",
+  "Treptow-Köpenick", "09",
+  "Marzahn-Hellersdorf", "10",
+  "Lichtenberg", "11",
+  "Reinickendorf", "12",
+)
+
+berlin_data_cleaned <- berlin_data_cleaned %>%
+  left_join(postal_data, by = c("geo_plz" = "Postcode")) %>%
+  left_join(bezirke_name_id, by = c("district" = "DISTRICT_NAME"))
+  
+# we should use ~2000 obversations based on the task description:
 sub_df <- berlin_data_cleaned |>
   filter(regio3 %in% c("Mitte_Mitte", "Tiergarten_Tiergarten", "Charlottenburg_Charlottenburg"))
 
-# sample 2000 observations from the sub_df
-sample_df <- berlin_data_cleaned |>
-  sample_n(2000)
 
+# ----- Geodata -----
+
+berlin_district_geo <- sf::st_read(dsn = "data/berlin_lor") %>% 
+  st_make_valid(tol = 0.00001) %>% st_transform(4326) %>% 
+  mutate(
+    DISTRICT_ID = str_sub(PLR_ID, 1, 2)
+  ) %>% 
+  left_join(bezirke_name_id, by = c("DISTRICT_ID" = "DISTRICT_ID")) %>%
+  group_by(DISTRICT_ID, DISTRICT_NAME) %>% 
+  summarize(
+    geometry = st_union(geometry),
+    .groups = 'drop'
+  )
