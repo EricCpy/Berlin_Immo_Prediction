@@ -48,7 +48,7 @@ The data provided in the Kaggle dataset consists of approximately 268,000 rental
   Before training a model, it is essential to thoroughly understand and clean the data. To achieve this, we will provide a concise visual overview of the dataset to highlight its key characteristics and identify potential issues.
 
 - **Predict Missing Values**:\
-  Because many columns in our data contain missing values, one of our goals is to impute these values and use the resulting data to train a predictive model. We will then compare the performance of this model to one trained on the original, non-imputed data to assess the impact of imputation on model accuracy.
+  Because many columns in our data contain missing values, one of our goals is to impute these values and use the resulting data instead of the raw data.
 
 - **Model Selection and Comparison**:\
   We aim to train a series of tree-based models on the dataset to predict the `baseRent` of an apartment, starting from simple decision trees that can provide explainable predictions and gradually progressing to more complex models such as Random Forests. Additionally, we will compare the performance of these tree-based methods with Support Vector Machine (SVM) regression to determine which approach yields the best results.
@@ -72,7 +72,8 @@ After filtering for Berlin listings, more than 10,000 entries remain. The next s
 | telekomHybridUploadSpeed   | Unnecessary, with mostly missing (NA) values.                                                        |
 | scoutId                    | Unique ID, not useful for analysis.                                                                  |
 | yearConstructedRange       | Artificial column, not relevant to the analysis.                                                     |
-| houseNumber                | Too granular for analysis; not relevant.                                                             |
+| streetPlain                | Would require significant cleaning or conversion into longitude and latitude.                        |
+| houseNumber                | Requires a corresponding street to provide meaningful context.                                       |
 | baseRentRange              | Artificial column, not needed for analysis.                                                          |
 | livingSpaceRange           | Artificial column, not needed for analysis.                                                          |
 | noRoomsRange               | Artificial column, not needed for analysis.                                                          |
@@ -452,6 +453,11 @@ SVR assigns zero prediction error to points within the \( \epsilon \)-insensitiv
 
 ## Our Models (Change title of this chapter)
 TODO
+
+- geo_plz contains 214 levels on 10000 rows, likely that we get plzs in test data which arent in train data, 
+- we also did some sort of dimension reduction on the geo_plzs by adding the districts and have subdistricts inside the regio3
+
+
 a description of your fitting process for each method including, a summary of how
 you arrived at your final model, the choice of hyperparameters and how you made
 this choice, (8P)
