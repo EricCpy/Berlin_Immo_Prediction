@@ -71,7 +71,7 @@ isn't useful for a tree model. There are too many different streets.
 # select needed variables
 immo_mod_df <- immo_df |>
   select(serviceCharge, heatingType, telekomTvOffer, newlyConst, pricetrend,
-         balcony, telekomUploadSpeed, totalRent, yearConstructed, noParkSpaces,
+         balcony, telekomUploadSpeed, yearConstructed, noParkSpaces,
          firingTypes, hasKitchen, cellar, baseRent, livingSpace, condition,
          interiorQual, petsAllowed, lift, typeOfFlat, noRooms,
          thermalChar, floor, numberOfFloors, garden, regio3,
@@ -80,7 +80,7 @@ immo_mod_df <- immo_df |>
 
 # sort so that label is first column
 immo_mod_df <- immo_mod_df |>
-  relocate(totalRent, .before = 1)
+  relocate(baseRent, .before = 1)
 ```
 During selection, all remaining character type variables are transformed to factor
 as they represent one of only a few categories. With this, our imputation method
@@ -91,9 +91,9 @@ also works for character type variables. The value imputation follows next.
 #| include: false
 #gibbs_immo <- mice(immo_mod_df, m = 5, maxit = 50, meth = 'pmm', seed = 600)
 
-#saveRDS(gibbs_immo, here("data/gibbs_immo.rds"))
+#saveRDS(gibbs_immo, here("data/gibbs_immo2.rds"))
 
-gibbs_immo <- readRDS(here("data/gibbs_immo.rds"))
+gibbs_immo <- readRDS(here("data/gibbs_immo2.rds"))
 
 # take first generated dataset
 Gibbsimmo1 <- complete(gibbs_immo, 1)
@@ -134,14 +134,14 @@ train_control <- trainControl(method = "cv", number = 5)
 
 # train the model with cross-validation and grid search
 model <- train(
-  totalRent ~ .,
+  baseRent ~ .,
   data = Immotrain,
   method = "gbm",
   trControl = train_control,
   tuneGrid = hyper_grid
 )
 
-#saveRDS(model, here("data/gbm_model.rds"))
+#saveRDS(model, here("data/gbm_model_baseRent.rds"))
 ```
 Let's look at the resulting model and the best parameters.
 ```{r}
@@ -152,9 +152,7 @@ model
 Since our label is a continuous variable, the root mean squared error can be used
 to compare the predicted values with the true values.
 ```{r}
-predictions <- predict(model, newdata = Immotest)
-rmse <- RMSE(predictions, Immotest$totalRent)
-print(rmse)
+print(min(model$results$RMSE))
 ```
 ```{r}
 plot(model)
@@ -175,14 +173,14 @@ train_control <- trainControl(method = "cv", number = 5)
 
 # Train the SVM model with cross-validation and grid search
 model <- train(
-  totalRent ~ .,
+  baseRent ~ .,
   data = Immotrain,
   method = "svmRadial",
   trControl = train_control,
   tuneGrid = hyper_grid
 )
 
-#saveRDS(model, here("data/svm_model.rds"))
+#saveRDS(model, here("data/svm_model_baseRent.rds"))
 ```
 Let's look at the result.
 ```{r}
@@ -190,11 +188,101 @@ model
 ```
 ## SVM Model performance
 ```{r}
-predictions <- predict(model, newdata = Immotest)
-rmse <- RMSE(predictions, Immotest$totalRent)
-print(rmse)
+print(min(model$results$RMSE))
 ```
+
 ```{r}
 plot(model)
+```
+# Leaving out outliers
+```{r}
+ggplot(immo_mod_df, aes(x = baseRent)) + 
+  geom_boxplot() + 
+  labs(title = "Distribution of Base Rent", x = "Base Rent", y = "Frequency") + 
+  theme_bw()
+```
+Let's calculate the border value over which values would be considered outliers
+for a boxplot.
+```{r}
+iqr <- IQR(Gibbsimmo1$baseRent)
+q3 <- quantile(Gibbsimmo1$baseRent, 0.75)
+upper_bound <- q3 + (1.5 * iqr)
+print(unname(upper_bound))
+```
+Base rents over 3382.50€ won't be considered.
+```{r}
+# filter for rents < 3382.50
+Gibbs_no_outliers <- Gibbsimmo1 |>
+  filter(baseRent < 3382.50)
+```
+
+# Retrain Models
+
+## Train-Test-Split
+```{r}
+set.seed(10)
+train_share <- 0.7
+train_idx <- sample(1:nrow(Gibbs_no_outliers), size = as.integer(nrow(Gibbs_no_outliers) * train_share))
+Immotrain <- Gibbs_no_outliers[train_idx, ]
+Immotest <- Gibbs_no_outliers[-train_idx, ]
+```
+
+## GBM
+```{r}
+#| include: false
+hyper_grid <- expand.grid(
+  interaction.depth = c(1, 2, 3),
+  n.trees = c(100, 200, 500),
+  shrinkage = c(0.01, 0.1, 0.2),
+  n.minobsinnode = c(5, 10, 20)
+)
+
+# create a training control object with cross-validation
+train_control <- trainControl(method = "cv", number = 5)
+
+# train the model with cross-validation and grid search
+model <- train(
+  baseRent ~ .,
+  data = Immotrain,
+  method = "gbm",
+  trControl = train_control,
+  tuneGrid = hyper_grid
+)
+
+#saveRDS(model, here("data/gbm_model_baseRent_no_outliers.rds"))
+```
+
+```{r}
+# model performance
+print(min(model$results$RMSE))
+```
+## SVM
+```{r}
+#| include: false
+
+# Define the hyperparameter grid for SVM
+hyper_grid <- expand.grid(
+  C = c(0.1, 1, 10),
+  sigma = c(0.01, 0.1, 1)
+)
+
+# Create a training control object with 5-fold cross-validation
+train_control <- trainControl(method = "cv", number = 5)
+
+# Train the SVM model with cross-validation and grid search
+model <- train(
+  baseRent ~ .,
+  data = Immotrain,
+  method = "svmRadial",
+  trControl = train_control,
+  tuneGrid = hyper_grid
+)
+
+#saveRDS(model, here("data/svm_model_baseRent_no_outliers.rds"))
+```
+
+```{r}
+# model performance
+print(min(model$results$RMSE))
 ```
 
