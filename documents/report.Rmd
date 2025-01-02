@@ -15,6 +15,7 @@ bibliography: references.bib
 csl: norsk-apa-manual.csl
 nocite:
 - "@corriebar_apartment_rental_germany_2020"
+- "@rasifaghihi_support_vector_regressor_2023"
 editor_options: 
   chunk_output_type: inline
 ---
@@ -37,20 +38,20 @@ The following dataset, available at [Kaggle](https://www.kaggle.com/datasets/cor
 ## Data Description
 
 The data provided in the Kaggle dataset consists of approximately 268,000 rental listings in Germany. In the dataset, the information from the rental listings are structured in a CSV file with 49 columns. The columns include:
--   Geographical information (state, city name and zip code)
--   Property information (construction year, flat type, heating type and number of rooms)
--   Total rent, base rent and service charge (in Euros)
+- Geographical information (state, city name and zip code)
+- Property information (construction year, flat type, heating type and number of rooms)
+- Total rent, base rent and service charge (in Euros)
 
 ## Objectives
 
 - **Data Understanding and Cleaning**:\
   Before training a model, it is essential to thoroughly understand and clean the data. To achieve this, we will provide a concise visual overview of the dataset to highlight its key characteristics and identify potential issues.
 
--   **Predict Missing Values**:\
-    Because many columns in our data contain missing values, one of our goals is to impute these values and use the resulting data to train a predictive model. We will then compare the performance of this model to one trained on the original, non-imputed data to assess the impact of imputation on model accuracy.
+- **Predict Missing Values**:\
+  Because many columns in our data contain missing values, one of our goals is to impute these values and use the resulting data to train a predictive model. We will then compare the performance of this model to one trained on the original, non-imputed data to assess the impact of imputation on model accuracy.
 
--   **Model Selection and Comparison**:\
-    We aim to train a series of tree-based models on the dataset to predict the `baseRent` of an apartment, starting from simple decision trees that can provide explainable predictions and gradually progressing to more complex models such as Random Forests. Additionally, we will compare the performance of these tree-based methods with Support Vector Machine (SVM) regression to determine which approach yields the best results.
+- **Model Selection and Comparison**:\
+  We aim to train a series of tree-based models on the dataset to predict the `baseRent` of an apartment, starting from simple decision trees that can provide explainable predictions and gradually progressing to more complex models such as Random Forests. Additionally, we will compare the performance of these tree-based methods with Support Vector Machine (SVM) regression to determine which approach yields the best results.
 
 # Data Overview and Cleaning
 
@@ -291,10 +292,189 @@ Missing values in testing data might lead to no result especially for a tree cla
 
 
 
+
 # Models
 
+The following chapter will first provide a general overview of the machine learning algorithms we plan to use for our models. Subsequently, we will train various models and evaluate them.
 
-## Evaluation on current overs
+
+## Regression Trees
+
+Tree models are supervised learning algorithms used for both regression and classification. They work by splitting the dataset into smaller subsets based on decision rules derived from the features and forming a tree structure. Each split improves the prediction accuracy of the model on the training data. The process continues until a stopping criterion, such as minimum number of observations in a node or maximum tree depth, is met.
+The tree’s leaf nodes represent the final predictions. For regression trees, this prediction is typically the average of the target variable within that leaf.  
+Regression trees are particularly useful for predicting continuous values as they can easily capture non-linear relationships. In our case, we aim to predict `baseRent` using a regression tree model.
+
+The following procedure shows how regression trees work:
+
+1. **Initialization**:  
+  The process begins with the entire dataset. The mean of the target variable \( Y \) serves as an initial prediction, as it minimizes the **Residual sum of squares (RSS)**:
+  \[
+  RSS = \sum_{i=1}^n (y_i - \hat{y})^2,
+  \]
+  where \( \hat{y} \) is the mean of \( Y \).
+
+2. **Splitting the data**:  
+  At each node, the dataset is split into two regions \( R_1 \) and \( R_2 \), based on feature \( X_j \) and threshold \( x \):
+  \[
+  R_1: X_j < x, \quad R_2: X_j \geq x.
+  \]
+  The goal is to find the split that minimizes the RSS for the two regions:
+  \[
+  RSS = \sum_{i \in R_1} (y_i - \hat{y}_1)^2 + \sum_{i \in R_2} (y_i - \hat{y}_2)^2,
+  \]
+  where \( \hat{y}_1 \) and \( \hat{y}_2 \) are the mean values of \( Y \) in \( R_1 \) and \( R_2 \), respectively.
+
+3. **Recursive splitting**:  
+  This process of splitting is repeated recursively. At every step, the algorithm evaluates all possible splits for every feature and selects the one that minimizes the RSS.
+
+4. **Stopping criteria**:  
+  If we continue splitting until each node contained only a single observation, then each node would perfectly predict the value of its observation, leading to an overfitted model with an RSS of 0.  
+  That is why we stop the tree growth when a predefined stopping criterion is met. This could be:
+    - The minimum number of observations in a node is reached.  
+    - The maximum depth is reached.  
+    - Further splits fail to reduce the RSS significantly.
+
+5. **Pruning with penalized least squares**:  
+  Overfitting is a common problem with regression trees when they grow too large. To address this, the tree is pruned using **Penalized least squares (PLS)**:
+  \[
+  PLS(\alpha) = \sum_{j=1}^{|T_\alpha|} \sum_{i \in R_j} (y_i - \hat{y}_j)^2 + \alpha |T_\alpha|,
+  \]
+  where:
+    - \( |T_\alpha| \) is the number of terminal nodes (leaf nodes) in the pruned tree \( T_\alpha \),
+    - \( \alpha \geq 0 \) is a complexity parameter controlling the trade-off between tree size and prediction accuracy.
+  
+    The parameter \( \alpha \) is chosen by using cross-validation, which ensures the pruned tree balances model complexity and performance.
+
+6. **Choosing the best subtree**:  
+  To find the optimal tree:
+    - The full tree is grown.
+    - The pruning process evaluates subtrees by varying \( \alpha \) and calculates the relative error using cross-validation.
+    - The subtree corresponding to the smallest cross-validation error is selected.
+
+
+## Ensemble Methods
+
+To understand how tree ensemble methods work, we need to know what bootstrapping is.
+Bootstrapping is a statistical technique that involves sampling with replacement from a dataset to create multiple subsets. Each bootstrap sample is the same size as the original dataset, but some observations may appear multiple times while others may be excluded. This technique is commonly used to generate diverse training subsets or to augment small datasets. In ensemble methods like bagging and random forests, bootstrapping enhances generalization and robustness by reducing variance only slightly increasing bias.
+
+
+### Bagging
+
+Bagging is an ensemble learning technique that enhances accuracy and reduces variance by combining the predictions of multiple models. It involves training several instances of the same machine learning algorithm on different subsets of the data and then aggregating their predictions to form a final output. For regression tasks, this typically involves averaging the predictions. For classification tasks, the class with the majority vote is selected.
+
+Bagging reduces model variance by averaging out individual errors, which leads to more robust and reliable predictions. This technique is especially useful when using base models that are prone to high variance, such as decision trees. An ensemble of decision trees is commonly referred to as a *forest*.
+
+
+### Random Forests
+
+*Random forests* enhance the concept of *forests* by introducing additional randomness during the tree building process. At each node split, only a random subset of features is considered, which prevents the model from relying too heavily on the same dominant predictors. This also allows less important predictors to capture more subtle patterns in the data. Typically, the number of features \( m \) considered at each split is given by \( m = \lfloor \sqrt{p} \rfloor \), where \( p \) is the total number of features. This approach helps to reduce overfitting caused by a few strong predictors, which leads to more robust and reliable predictions.
+
+
+### Boosting
+
+Boosting is an ensemble learning technique in machine learning that aims to improve the performance of weak models, such as a small tree (called *stump*) by combining their predictions to create a strong predictive model. The core idea is to iteratively train a series of models, where each new model focuses on correcting the mistakes made by the previous ones.
+
+The process begins with a simple model, like a stump, which makes predictions on the training data. The instances that were misclassified or had large errors are then given higher weights, so that subsequent models pay more attention to correcting these errors.  
+In the next iteration, a new model is trained on the weighted data, where the misclassified have higher weights. After training, it is added to the ensemble and its predictions are combined with those of the previous models. The respect to errors the weights are updated again. This process repeats for several iterations, with each new model gradually improving the overall predictions.  
+The final prediction is made by aggregating the predictions of all models. In algorithms like AdaBoost, this is done by weighted voting, where better performing models have more influence on the result.
+
+Boosting helps to reduce bias and variance. Initially, a simple model may have high bias and low variance, but as boosting progresses, the bias decreases, which improves the accuracy of our predictions. However, the increased flexibility and strong focus on errors can also lead to higher variance, making the model more sensitive to noise. To prevent overfitting regularization techniques and early stopping are often used.
+
+We want to test the following boosting algorithms on our dataset:
+
+- Gradient Boosting: Focuses on minimizing a loss function by fitting new models to the residuals of previous predictions.
+- XGBoost: An optimized version of gradient boosting that enhances speed, performance and uses regularization techniques.
+
+
+## Support Vector Machines
+
+Support vector machines (SVMs) are supervised learning algorithms that can be used for both classification and regression tasks. They work by finding a hyperplane that best separates data points into different classes. SVMs excel in situations where relationships between variables are complex and potentially non-linear. This chapter provides an overview of how SVMs work, with a focus on their extension to regression tasks and the kernel trick, which enables handling non-linear relationships effectively.
+
+
+### Linear Support Vector Machines
+
+In classification SVMs aim to identify a hyperplane \( f(x) \) that satisfies:  
+\[
+\hat{y}(x) = \text{sign}(f(x)), \quad f(x) = \beta_0 + \sum_{j=1}^p \beta_j x_j,
+\]
+where the hyperplane separates the data into distinct classes while maximizing a margin, which is the distance between the hyperplane and the closest data points from each class, known as *support vectors*.  
+
+However, real world datasets often contain overlapping classes, making perfect separation impossible. To address this SVMs use a *soft margin* that allows some misclassifications. The trade off between margin width and classification errors is controlled by the penalty parameter \( C \). The optimization problem for a soft margin SVM is:  
+\[
+\text{maximize } M, \quad \text{subject to } y_i f(x_i) \geq M(1 - \xi_i), \quad \xi_i \geq 0, \quad \sum_{i=1}^n \xi_i \leq C,
+\]
+where \( \xi_i \) are slack variables representing the extent of misclassification.  
+
+While linear SVMs are effective for linearly separable data, they struggle with non-linear relationships, where a simple hyperplane cannot adequately separate the classes.
+
+
+### Non-linear Support Vector Machines
+
+To overcome the limitations of linear SVMs, data can be projected into higher-dimensional feature spaces, where a linear hyperplane can separate the data. This involves mapping the input \( x \) from its original space \( \mathbb{R}^p \) to a higher-dimensional feature space \( \mathbb{R}^q \), where \( q > p \):  
+\[
+\phi(x) : \mathbb{R}^p \to \mathbb{R}^q.
+\]
+In this transformed space, a linear decision boundary may successfully classify the data. However, explicitly computing \( \phi(x) \) is computationally inefficient, especially for large datasets or high-dimensional mappings.  
+
+The *kernel trick* addresses this challenge by avoiding explicit computation of \( \phi(x) \). Instead, SVMs calculate the inner product in the feature space \( \langle \phi(x_i), \phi(x_j) \rangle \), indirectly using a kernel function \( K(x_i, x_j) \). This enables efficient computation in the higher-dimensional space without ever explicitly performing the transformation. The decision function then takes the form:  
+\[
+f(x) = \beta_0 + \sum_{i \in S} \alpha_i K(x, x_i),
+\]
+where \( S \) represents the set of support vectors that define the hyperplane, enhancing computational efficiency by focusing only on these critical points. The values \( \alpha_i \) are the Lagrange multipliers corresponding to each support vector \( x_i \). These multipliers are determined during the training process and reflect the importance of each support vector in defining the optimal hyperplane.  
+By leveraging the kernel trick, SVMs maintain computational efficiency while gaining the flexibility to tackle complex, non-linear problems.  
+
+
+### Regression with Support Vector Machines [@rasifaghihi_support_vector_regressor_2023]
+
+Support vector regression (SVR) is an extension of SVMs for regression tasks. The goal of SVR is to identify a function \( f(x) \) that accurately predicts the target variable, while minimizing model complexity to enhance generalization and reduce overfitting.  
+
+A distinctive feature of SVR is the introduction of an \( \epsilon \)-insensitive tube around the regression hyperplane. This tube defines a tolerance margin within which deviations between predicted and actual target values are not penalized. This creates a balance between model complexity and its ability to generalize effectively.  
+
+For a linear function \( f(x) = wx + b \), this means to minimizing \( w \), which makes it less sensitive to small variations in the input data.  
+The SVR problem is formulated as a convex optimization task with the following objectives:  
+1. Ensure that the deviations between predictions \( f(x) \) and actual target values \( y \) remain within \( \epsilon \) for all training data points. 
+2. Minimize the complexity of the function \( f(x) \) by keeping \( w \) small.  
+
+In cases where the optimization problem is infeasible due to noisy data or overlapping regions, *slack variables* (\( \xi_i^+ \) and \( \xi_i^- \)) are introduced. These variables allow for deviations beyond the \( \epsilon \)-insensitive tube, representing data points that fall outside the tube.  
+
+The optimization problem can be expressed as:  
+\[
+\min \frac{1}{2} \|w\|^2 + C \sum_{i=1}^n (\xi_i^+ + \xi_i^-),
+\]
+subject to the following constraints:  
+\[
+y_i - f(x_i) \leq \epsilon + \xi_i^+, \quad f(x_i) - y_i \leq \epsilon + \xi_i^-, \quad \xi_i^+, \xi_i^- \geq 0.
+\]
+The regularization strength is inversely related to \( C \), meaning higher values allow the model to prioritize accuracy at the expense of simplicity.  
+
+SVR assigns zero prediction error to points within the \( \epsilon \)-insensitive tube. For points outside the tube (slack variables), the penalty is proportional to the magnitude of their deviation. The tolerance for small deviations and penalties for larger errors make SVR more robust to overfitting.
+
+
+
+## Our Models (Change title of this chapter)
+TODO
+a description of your fitting process for each method including, a summary of how
+you arrived at your final model, the choice of hyperparameters and how you made
+this choice, (8P)
+
+- fit each on not imputed data
+- on imputed data
+- with outliers
+- without outliers
+
+### Decision Trees
+
+### Ensemble Methods
+- include comparison of decision tree vs ensemble
+
+### SVMs
+
+## Evaluation 
+- include comparison of ensmble tree methods and svms
+
+
+
+# Evaluation on current apartments
 Why it might fail?
 Market Demand and Supply: An imbalance between the number of available apartments and the demand from potential tenants leads to price fluctuations. High demand with limited supply results in increased rents. 
 Economic Conditions: The general economic situation and income development of the population in Berlin play a role in determining rental prices. 

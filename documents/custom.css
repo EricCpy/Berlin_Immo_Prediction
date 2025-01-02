@@ -17,3 +17,8 @@ h5.author {
     font-style: italic;
     margin-top: -1.5em !important;
 }
+
+ol > li > ul {
+    margin-top: -1rem !important;
+    margin-bottom: 1rem !important;
+}
