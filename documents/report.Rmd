@@ -295,8 +295,7 @@ Missing values in testing data might lead to no result especially for a tree cla
 
 # Models
 
-The following chapter will first provide a general overview of the machine learning algorithms we plan to use for our models. Subsequently, we will train various models and evaluate them.
-
+The following chapter begins with an overview of the machine learning algorithms we plan to use for our models. The content in this section is primarily based on our lecture slides, with citations provided for any external sources. Subsequently, we will train various models and evaluate them.
 
 ## Regression Trees
 
