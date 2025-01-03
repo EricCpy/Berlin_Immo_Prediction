@@ -3,12 +3,12 @@ title: "ML2 Project"
 author: "Eric Jonas, Caroline Graebel, Naim Iskandar Zahari, Kseniia Holovchenko"
 date: "`r Sys.Date()`"
 output: 
-  # if pdf wanted
   bookdown::gitbook:
     css: "custom.css"
     code_folding: hide
     split_by: none
     self_contained: true
+  # if pdf wanted
   #pdf_document:
   #  latex_engine: xelatex
 bibliography: references.bib
@@ -38,6 +38,7 @@ The following dataset, available at [Kaggle](https://www.kaggle.com/datasets/cor
 ## Data Description
 
 The data provided in the Kaggle dataset consists of approximately 268,000 rental listings in Germany. In the dataset, the information from the rental listings are structured in a CSV file with 49 columns. The columns include:
+
 - Geographical information (state, city name and zip code)
 - Property information (construction year, flat type, heating type and number of rooms)
 - Total rent, base rent and service charge (in Euros)
@@ -262,35 +263,42 @@ corrplot::corrplot(cor_matrix, method = "circle", type = "lower",
 ```
 
 From the correlation analysis, we observed several expected relationships:
+
 - Apartments with a high `baseRent` tend to have:
   - Higher `serviceCharges`, `heatingCosts` (additional rental costs)
   - Larger `livingSpace`, more rooms (`noRooms`)
 
 These findings align with our expectations, as more expensive apartments generally offer more space and additional services.
 
-One initially confusing correlation was between `thermalChar` and `yearConstructed`. After further research, we found that `thermalChar` represents the apartment's energy efficiency level, which is often linked to the building's construction year. Newer buildings tend to be more energy-efficient due to modern construction standards and regulations.  
+One initially confusing correlation was between `thermalChar` and `yearConstructed`. After further research, we found that `thermalChar` represents the apartments energy efficiency level, which is often linked to the buildings construction year. Newer buildings tend to be more energy-efficient due to modern construction standards and regulations.  
 Interestingly, this energy efficiency only shows a weak negative correlation with `heatingCosts`. Contrary to our inital expectations, more energy-efficient apartments appear to incur slightly higher heating costs. One possible explanation is the cost disparity between energy sources, in 2020 and even today, dirtier energy sources are often more affordable than renewable or sustainable alternatives.
-
 
 
 ## Imputation
 
-Missing values in testing data might lead to no result especially for a tree classifier, as information on what node to take next is missing.
+Missing values in the data can significantly impact model performance, especially for Support Vector Machines (SVMs). While tree models such as those in `rpart` can handle missing values, SVMs from the `e1071` package cannot. SVMs simply exclude rows with missing values, which can lead to a scenario where the model is trained on as few as 10 observations.
 
-**Gibbs sampling** is used to impute values. A modelling approach of Gibbs sampling keeps the distribution of variables and lose as little information as possible when fitting our models. The resulting object of the mice algorithm holds eight different datasets that might be more or less different from one another. For starting off, the first dataset is chosen.
+In our initial [data overview](#data-preparation) we identified the number of missing values in each column. To improve our understanding, we will visualize the top 10 columns with the highest percentage of missing values. These columns are also potential candidates for exclusion if we decide to reduce our model size. The following plot displays the absolute number of missing values out of a total of 10,304 entries.
 
-```{r}
-#| include: false
-#gibbs_immo <- mice(immo_mod_df, m = 5, maxit = 50, meth = 'pmm', seed = 600)
+```{r dataAnalysisMissingValues, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.align='center', fig.cap= "Top 10 Columns with Most Missing Values", fig.width=6, fig.height=4}
+top_na_counts <- berlin_data_cleaned %>%
+  summarise(across(everything(), ~ sum(is.na(.)), .names = "{col}")) %>%
+  pivot_longer(cols = everything(), names_to = "Column", values_to = "MissingCount") %>%
+  arrange(desc(MissingCount)) %>%
+  slice_head(n = 10)
 
-#saveRDS(gibbs_immo, here("data/gibbs_immo.rds"))
-
-#gibbs_immo <- readRDS(here("data/gibbs_immo.rds"))
-
-## take first generated dataset
-#Gibbsimmo1 <- complete(gibbs_immo, 1)
+ggplot(top_na_counts, aes(x = reorder(Column, MissingCount), y = MissingCount)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(x = "Columns", y = "Count of Missing Values") +
+  theme_minimal() +
+  coord_flip()
 ```
 
+For some columns, such as `lastRefurbished`, missing values have specific meanings. For example, indicating that the apartment has never been renovated. For the remaining columns we assume that the missing values represent missing data.   
+To address the values in `lastRefurbished` we will impute missing values with the year of construction, as this represents the most plausible time for the first or last renovation.  
+For all other columns we will use *Gibbs sampling* to impute values. This approach preserves the underlying distribution of variables and minimizes information loss during model fitting. 
+
+The imputation process using the *MICE* algorithm will generate five different datasets. For model training we will build models on all five datasets and aggregate their results to produce a final output. For simplicity in visualizations, such as decision tree plots, we will use the first dataset generated by Gibbs sampling.
 
 
 

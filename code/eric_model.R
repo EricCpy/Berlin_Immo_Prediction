@@ -1,15 +1,15 @@
 source("code/setup.R")
 
 # View the cleaned dataframe
-head(berlin_data_model)
-dim(berlin_data_model)
-colnames(berlin_data_model)
-sum(is.na(berlin_data_model$baseRent))
+head(berlin_data_for_model)
+dim(berlin_data_for_model)
+colnames(berlin_data_for_model)
+sum(is.na(berlin_data_for_model$baseRent))
 
 set.seed(123)
-train_index <- sample(seq_len(nrow(berlin_data_model)), size = 0.8 * nrow(berlin_data_model))
-train_data <- berlin_data_model[train_index, ]
-test_data <- berlin_data_model[-train_index, ]
+train_index <- sample(seq_len(nrow(berlin_data_for_model)), size = 0.8 * nrow(berlin_data_for_model))
+train_data <- berlin_data_for_model[train_index, ]
+test_data <- berlin_data_for_model[-train_index, ]
 
 # ---- Decision Trees ----
 
@@ -55,7 +55,7 @@ cat("Full Tree Metrics (Testing): MSE =", test_metrics_full["MSE"], "MAE =", tes
 cat("Pruned Tree Metrics (Training): MSE =", train_metrics_pruned["MSE"], "MAE =", train_metrics_pruned["MAE"], "\n")
 cat("Pruned Tree Metrics (Testing): MSE =", test_metrics_pruned["MSE"], "MAE =", test_metrics_pruned["MAE"], "\n")
 
-# ---- Ensemble Methods ----
+# ---- SVMs ----
 
 default_svm <- svm(baseRent ~ ., data = train_data, kernel = "radial")
 
@@ -83,4 +83,9 @@ cat("Default SVM Metrics (Training): MSE =", train_metrics_default["MSE"], "MAE 
 cat("Default SVM Metrics (Testing): MSE =", test_metrics_default["MSE"], "MAE =", test_metrics_default["MAE"], "\n")
 cat("Tuned SVM Metrics (Training): MSE =", train_metrics_tuned["MSE"], "MAE =", train_metrics_tuned["MAE"], "\n")
 cat("Tuned SVM Metrics (Testing): MSE =", test_metrics_tuned["MSE"], "MAE =", test_metrics_tuned["MAE"], "\n")
+
+# ---- Ensemble Methods ----
+
+
+# ---- Test Stuff ----
 

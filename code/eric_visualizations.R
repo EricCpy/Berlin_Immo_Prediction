@@ -138,3 +138,20 @@ ggplot(cor_data, aes(x = reorder(variable, correlation), y = correlation)) +
   theme_minimal() +
   theme(axis.text.y = element_text(size = 10), axis.text.x = element_text(size = 10))
 
+
+# ---- Missings ----
+top_na_counts <- berlin_data_cleaned %>%
+  summarise(across(everything(), ~ sum(is.na(.)), .names = "{col}")) %>%
+  pivot_longer(cols = everything(), names_to = "Column", values_to = "MissingCount") %>%
+  arrange(desc(MissingCount)) %>%
+  slice_head(n = 10)
+
+ggplot(top_na_counts, aes(x = reorder(Column, MissingCount), y = MissingCount)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(
+    title = "Top 10 Columns with Most Missing Values",
+    x = "Columns",
+    y = "Count of Missing Values"
+  ) +
+  theme_minimal() +
+  coord_flip()

@@ -30,6 +30,7 @@ berlin_data_cleaned <- berlin_data_semi_cleaned %>%
   ) %>%
   distinct()
 
+
 postal_data <- read.csv("data/postalcodes_with_districts_berlin.csv") %>%
   mutate(Postcode = as.character(Postcode)) %>%
   rename(district = District) %>%
@@ -79,10 +80,13 @@ berlin_data_for_model <- berlin_data_cleaned %>%
   select(-DISTRICT_ID,
          -geo_plz) %>% # contains 214 levels on 10000 rows, likely that we get plzs in test data which arent in train data, 
                       # we also did some sort of dimension reduction on the geo_plzs by adding the districts and have subdistricts inside the regio3
-  mutate(across(where(is.character), as.factor))
+  mutate(
+    lastRefurbish = if_else(is.na(lastRefurbish), yearConstructed, lastRefurbish), # do this here because we show cleaned in imputation chapter
+    across(where(is.character), as.factor)
+  )
 
-generate_gibbs <- FALSE
-if (file.exists("./data/gibbs_berlin_data_model.rds")) {
+generate_gibbs <- TRUE
+if (file.exists("./data/gibbs_berlin_data_for_model.rds")) {
   gibbs_berlin_data_for_model <- readRDS("./data/gibbs_berlin_data_model.rds")
   train_test_results <- generate_train_test_data_from_gibbs(gibbs_berlin_data_for_model)
   train_data <- train_test_results$train_data
@@ -90,7 +94,7 @@ if (file.exists("./data/gibbs_berlin_data_model.rds")) {
   
 } else if (generate_gibbs) {
   gibbs_berlin_data_for_model <- mice(berlin_data_for_model, m = 5, maxit = 50, meth = 'pmm', seed = 600)
-  saveRDS(gibbs_immo, "./data/gibbs_berlin_data_model.rds")
+  saveRDS(gibbs_berlin_data_for_model, "./data/gibbs_berlin_data_for_model.rds")
   train_test_results <- generate_train_test_data_from_gibbs(gibbs_berlin_data_for_model)
   train_data <- train_test_results$train_data
   test_data <- train_test_results$test_data
