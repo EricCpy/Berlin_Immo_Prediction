@@ -155,3 +155,21 @@ ggplot(top_na_counts, aes(x = reorder(Column, MissingCount), y = MissingCount)) 
   ) +
   theme_minimal() +
   coord_flip()
+
+
+# ---- Regression Line SVM ----
+
+test_data1 <- test_data[[1]]
+
+svm_model1 <- readRDS("data/models/models_svm.rds")[1]
+
+train_data1 <- train_data[[1]]
+train_pred_svm <- predict(svm_model1, train_data1)[[1]]
+
+ggplot(train_data1, aes(x = livingSpace, y = baseRent)) +
+  geom_point(color = 'blue', alpha = 0.5) +  # Scatter plot of the original data
+  geom_line(aes(x = livingSpace, y = train_pred_svm), color = 'red', size = 0.2) +  # SVM regression line
+  labs(title = "Regression Line: Year Constructed vs Base Rent",
+       x = "Year Constructed",
+       y = "Base Rent") +
+  theme_minimal()

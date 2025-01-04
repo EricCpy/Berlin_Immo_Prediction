@@ -16,6 +16,8 @@ csl: norsk-apa-manual.csl
 nocite:
 - "@corriebar_apartment_rental_germany_2020"
 - "@rasifaghihi_support_vector_regressor_2023"
+- "@gunay_understanding_parameters_svm_2021"
+- "@lejlot_svc_coef0_parameter_range_2013"
 editor_options: 
   chunk_output_type: inline
 ---
@@ -255,7 +257,7 @@ Another observation is that the missing entries (`NA`) have a wide interquartile
 To better understand the relationships between variables in our dataset, we analyzed the correlations between them, focusing on how the predictors relate to the `baseRent`. This helps us identify expected patterns and uncover any unexpected relationships.
 
 ```{r dataAnalysisCorrelations, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.align='center', fig.cap= "Correlation Matrix", fig.width=7, fig.height=7}
-numeric_vars <- berlin_data_cleaned_visualizations %>% select_if(is.numeric)
+numeric_vars <- berlin_data_cleaned_visualizations %>% select_if(is.numeric) %>% select(-log_baseRent, -noRoomsRounded)
 cor_matrix <- cor(numeric_vars,  use = "complete.obs")
 corrplot::corrplot(cor_matrix, method = "circle", type = "lower", 
                    tl.cex = 0.8,
@@ -302,7 +304,7 @@ The imputation process using the *MICE* algorithm will generate five different d
 
 
 
-# Models Overview
+# Model Overview
 
 The following chapter begins with an overview of the machine learning algorithms we plan to use for our models. The content in this section is primarily based on our lecture slides, with citations provided for any external sources. Subsequently, we will train various models and evaluate them.
 
@@ -390,8 +392,8 @@ Boosting helps to reduce bias and variance. Initially, a simple model may have h
 
 We want to test the following boosting algorithms on our dataset:
 
-- Gradient Boosting: Focuses on minimizing a loss function by fitting new models to the residuals of previous predictions.
-- XGBoost: An optimized version of gradient boosting that enhances speed, performance and uses regularization techniques.
+- **Gradient Boosting**: Focuses on minimizing a loss function by fitting new models to the residuals of previous predictions.
+- **XGBoost**: An optimized version of gradient boosting that enhances speed, performance and uses regularization techniques.
 
 
 ## Support Vector Machines
@@ -458,7 +460,7 @@ The regularization strength is inversely related to \( C \), meaning higher valu
 SVR assigns zero prediction error to points within the \( \epsilon \)-insensitive tube. For points outside the tube (slack variables), the penalty is proportional to the magnitude of their deviation. The tolerance for small deviations and penalties for larger errors make SVR more robust to overfitting.
 
 
-# Models Implementation
+# Model Implementation
 TODO
 
 - geo_plz contains 214 levels on 10000 rows, likely that we get plzs in test data which arent in train data, 
@@ -495,8 +497,8 @@ print(head(default_tree$cptable, 10))
 ```
 
 From the `cptable`, we can use two approaches to prune the tree:  
-1. **Lowest Cross-Validation Error:** Prune the tree to the complexity parameter corresponding to the lowest cross-validated error (`xerror`).  
-2. **Standard Deviation Rule:** Use the complexity parameter with the simplest tree whose error is within one standard deviation of the minimum cross-validated error. This approach is recommended by the authors of the `rpart` package.
+1. **Lowest Cross-Validation Error**: Prune the tree to the complexity parameter corresponding to the lowest cross-validated error (`xerror`).  
+2. **Standard Deviation Rule**: Use the complexity parameter with the simplest tree whose error is within one standard deviation of the minimum cross-validated error. This approach is recommended by the authors of the `rpart` package.
 
 The following plot illustrates the first complexity parameters and cross-validation errors for our tree:
 
@@ -521,26 +523,80 @@ The pruning process helps to create a more interpretable tree while maintaining 
 
 
 From the table we observe the following:  
-1. **Full Tree:** Surprisingly, the full tree performs well on the test dataset, achieving competitive results in MSE and RMSE and the best results for mean absolute erro. This suggests a high degree of variance in the dataset.  
-2. **Best xError:** This pruning technique achieves significantly better results compared to the method recommended by the authors of the `rpart` package, as it has the lowest MSE and RMSE out of all methods.  
-3. **Authors Method:** While this approach prioritizes simplicity and generalization, it results in higher error values compared to the other methods. This means that this pruning method may not be the optimal choice for this dataset.
+1. **Full Tree**: Surprisingly, the full tree performs well on the test dataset, achieving competitive results in MSE and RMSE and the best results for mean absolute error. This suggests a high degree of variance in the dataset.  
+2. **Best xError**: This pruning technique achieves significantly better results compared to the method recommended by the authors of the `rpart` package, as it has the lowest MSE and RMSE out of all methods.  
+3. **Authors Method**: While this approach prioritizes simplicity and generalization, it results in higher error values compared to the other methods. This means that this pruning method may not be the optimal choice for this dataset.
+
+## Support Vector Machines
+In this section, we focus on training a SVM for regression using the `e1071` package. 
+
+SVM Regression is a distance based algorithm, which means they calculate distances between data points to make decisions. One key consideration when using SVMs is that variables with larger scales can dominate the distance calculations, potentially leading to inaccurate results. This is because the SVMs decision boundary relies on calculating the distance between points. Therefore normalizing or standardizing data is crucial to ensure that each feature contributes equally to the model. 
+
+For tuning the SVM parameters and validating its performance, we performed cross-validation on one of our imputed datasets with the following settings:
+
+- **Kernel Function**: (`polynomial`, `radial`, `sigmoid`, `linear`)  
+   The kernel function defines the type of decision boundary the SVM will create. It maps the input features to a higher-dimensional space where linear separation is possible.
+
+- **Cost (C)**: (0.5, 1, 2, 4)  
+   The cost parameter controls the trade-off between minimizing training error and ensuring good generalization to new data. It penalizes misclassification of data points. A higher cost leads to a more complex model that fits the training data closely, which may result in overfitting.
+
+- **Gamma (γ)**: (0.01, 0.5, 1, 2)  
+   Gamma influences individual training points when using non-linear kernels (e.g., *radial*, *polynomial*). A high gamma value causes a potentially overfitted model. A low gamma value results in a smoother decision boundary that is less sensitive to individual data points. [@gunay_understanding_parameters_svm_2021]
+
+- **Degree**: (2, 3, 6, 10)  
+   The degree parameter applies only to the *polynomial* kernel. It specifies the degree of the polynomial used to compute the kernel. A higher degree increases the complexity which could lead to overfitting. 
+
+- **Coef0**: (0, 1, 5, 10)  
+   The coef0 parameter is relevant only for *polynomial* and *sigmoid* kernels. It controls the impact of the higher-dimensional feature space on the decision boundary. [@lejlot_svc_coef0_parameter_range_2013]
 
 
+In this case the results of SVM fitting over all imputed datasets are as follows:
 
-### Ensemble Methods
+| Method                    | Average MSE  | Average RMSE | Average MAE  |
+|---------------------------|--------------|--------------|--------------|
+| **HPO SVM**               | 114,781.2    | 338.71       | 169.77       |
+
+When comparing SVMs to simple regression trees, we can see that SVMs performed slightly better. Decision trees are more interpretable, but also prone to overfitting, especially when there are many features or complex relationships in the data. SVMs tend to generalize better, which leads to lower error metrics.  
+While both models have their advantages, the SVMs performance suggests it is better suited for this particular dataset, likely due to its improved ability to handle outliers and avoid overfitting. 
+To evaluate these statements, we plotted a regression line for `livingSpace`, one of the variables with the highest correlation to `baseRent`. The plot shows that the model does not overfit to all outliers, but the still appears to be strongly overfitted.
+
+```{r regressionLineSVMLivingSpace, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.align='center', fig.cap="Living Space vs Base Rent", fig.width=6, fig.height=4}
+svm_model1 <- readRDS("data/models/models_svm.rds")[1]
+train_pred_svm <- predict(svm_model1, train_data1)[[1]]
+
+ggplot(train_data1, aes(x = livingSpace, y = baseRent)) +
+  geom_point(color = 'blue', alpha = 0.5) + 
+  geom_line(aes(x = livingSpace, y = train_pred_svm), color = 'red', size = 0.2) +
+  labs(title = "Regression Line: Living Space vs Base Rent",
+       x = "Living Space",
+       y = "Base Rent") +
+  theme_minimal()
+```
+
+
+## Gradient Boosting
 - include comparison of decision tree vs ensemble
 
-### SVMs
 
-### Ensemble Methods
-
-### Outlier Detection
-
-### Smaller Model
+## XGBoost
 
 
 
-## Evaluation 
+
+
+## Ensemble Methods
+
+
+
+## Outlier Detection
+
+
+
+## Smaller Model
+
+
+
+# Model Evaluation 
 - include comparison of ensmble tree methods and svms
 
 

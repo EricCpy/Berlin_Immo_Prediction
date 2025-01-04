@@ -74,33 +74,24 @@ print(results)
 
 
 # ---- SVMs ----
+predict_function_svm <- function(model, test_data) {
+  predict(model, test_data)
+}
 
-default_svm <- svm(baseRent ~ ., data = train_data1, kernel = "radial")
+train_model_function_svm <- function(train_data) {
+  svm(baseRent ~ ., data = train_data, coef=5, kernel = "polynomial")
+}
 
-tuned_svm <- tune(
-  svm,
-  baseRent ~ .,
-  data = train_data1,
-  ranges = list(cost = 2^(-1:2), gamma = 2^(-2:1))
+results <- train_and_evaluate_models(
+  train_data = train_data,
+  test_data = test_data,
+  train_model_function = train_model_function_svm,
+  predict_function = predict_function_svm,
+  saved_models = "data/models/models_svm.rds",
+  save_model = TRUE
 )
 
-best_svm <- tuned_svm$best.model
-
-train_pred_default <- predict(default_svm, train_data1)
-test_pred_default <- predict(default_svm, test_data1)
-train_pred_tuned <- predict(best_svm, train_data1)
-test_pred_tuned <- predict(best_svm, test_data1)
-
-train_metrics_default <- metrics(train_data1$baseRent, train_pred_default)
-test_metrics_default <- metrics(test_data1$baseRent, test_pred_default)
-
-train_metrics_tuned <- metrics(train_data1$baseRent, train_pred_tuned)
-test_metrics_tuned <- metrics(test_data1$baseRent, test_pred_tuned)
-
-cat("Default SVM Metrics (Training): MSE =", train_metrics_default["MSE"], "MAE =", train_metrics_default["MAE"], "\n")
-cat("Default SVM Metrics (Testing): MSE =", test_metrics_default["MSE"], "MAE =", test_metrics_default["MAE"], "\n")
-cat("Tuned SVM Metrics (Training): MSE =", train_metrics_tuned["MSE"], "MAE =", train_metrics_tuned["MAE"], "\n")
-cat("Tuned SVM Metrics (Testing): MSE =", test_metrics_tuned["MSE"], "MAE =", test_metrics_tuned["MAE"], "\n")
+print(results)
 
 # ---- Randomforests ----
 default_rf <- randomForest(
