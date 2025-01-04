@@ -94,39 +94,36 @@ results <- train_and_evaluate_models(
 print(results)
 
 # ---- Randomforests ----
-default_rf <- randomForest(
-  baseRent ~ ., 
-  data = train_data1
+predict_function_rf <- function(model, test_data) {
+  test_data_rf <- test_data %>%
+    select(where(~ !(is.factor(.) || is.character(.)) || n_distinct(.) <= 53))
+  
+  predict(model, test_data_rf)
+}
+
+train_model_function_rf <- function(train_data) {
+  train_data_rf <- train_data %>%
+    select(where(~ !(is.factor(.) || is.character(.)) || n_distinct(.) <= 53))
+  
+  randomForest(
+    baseRent ~ ., 
+    data = train_data_rf,
+    ntree=500,
+    mtry=20,
+    nodesize=2
+  )
+}
+
+results <- train_and_evaluate_models(
+  train_data = train_data,
+  test_data = test_data,
+  train_model_function = train_model_function_rf,
+  predict_function = predict_function_rf,
+  saved_models = "data/models/models_randomforest.rds",
+  save_model = TRUE
 )
 
-# Tune Random Forest using cross-validation
-tuned_rf <- tune(
-  randomForest,
-  baseRent ~ .,
-  data = train_data1,
-  ranges = list(mtry = c(2, 3, 4, 5, 6)) # Specify other values to try
-)
-
-best_rf <- tuned_rf$best.model
-
-train_pred_default <- predict(default_rf, train_data1)
-test_pred_default <- predict(default_rf, test_data1)
-train_pred_tuned <- predict(best_rf, train_data1)
-test_pred_tuned <- predict(best_rf, test_data1)
-
-train_metrics_default <- metrics(train_data1$baseRent, train_pred_default)
-test_metrics_default <- metrics(test_data1$baseRent, test_pred_default)
-train_metrics_tuned <- metrics(train_data1$baseRent, train_pred_tuned)
-test_metrics_tuned <- metrics(test_data1$baseRent, test_pred_tuned)
-
-cat("Default Random Forest Metrics (Training): MSE =", train_metrics_default["MSE"], "MAE =", train_metrics_default["MAE"], "\n")
-cat("Default Random Forest Metrics (Testing): MSE =", test_metrics_default["MSE"], "MAE =", test_metrics_default["MAE"], "\n")
-cat("Tuned Random Forest Metrics (Training): MSE =", train_metrics_tuned["MSE"], "MAE =", train_metrics_tuned["MAE"], "\n")
-cat("Tuned Random Forest Metrics (Testing): MSE =", test_metrics_tuned["MSE"], "MAE =", test_metrics_tuned["MAE"], "\n")
-
-# Variable importance for tuned model
-importance(best_rf)
-varImpPlot(best_rf)
+print(results)
 
 # ---- GBM -----
 # Load necessary libraries

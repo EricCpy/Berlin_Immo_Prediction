@@ -1,3 +1,5 @@
+source("code/setup.R")
+
 train_data1 <- train_data[[1]]
 test_data1 <- test_data[[1]]
 
@@ -47,8 +49,7 @@ test_metrics_pruned <- metrics(test_data1$baseRent, predict(pruned_tree, test_da
 
 # best found model was 
 # Metrics (Testing): MSE = 122979.3 MAE = 173.5774 
-#best_svm <- svm(baseRent ~ ., data = train_data1, coef0=5, kernel = "polynomial")
-best_svm <- svm(baseRent ~ ., data = train_data1, cost=5, kernel = "linear")
+best_svm <- svm(baseRent ~ ., data = train_data1, coef0=5, kernel = "polynomial")
 
 # tested for all kernels: "polynomial", "radial", "sigmoid", "linear"
 tuned_svm <- tune(
@@ -90,4 +91,48 @@ ggplot(train_data1, aes(x = heatingCosts, y = baseRent)) +
 test_metrics_best
 
 
-# ---- GBM ----
+# ---- Randomforests ----
+# cant use categorical variables with more than 53 categories in randomForest in R
+train_data_rf <- train_data1 %>%
+  select(where(~ !(is.factor(.) || is.character(.)) || n_distinct(.) <= 53))
+
+train_control <- trainControl(method = "cv", number = 10)
+
+tune_grid <- expand.grid(
+  mtry = c(5, 10, 20)
+)
+
+tuned_rf <- train(
+  baseRent ~ ., 
+  data = train_data_rf, 
+  method = "rf", 
+  trControl = train_control, 
+  tuneGrid = tune_grid,
+  # cant include these params in grid, they also only lead to slight changes
+  ntree=500 #, # tested for (200, 500, 1000)
+ # nodesize=5     # c(2, 5, 10, 20)
+)
+
+tuned_rf <- tuned_rf$finalModel
+tuned_rf
+
+# 20, 500, node = 5, mtry = 20
+best_rf <- randomForest(
+  baseRent ~ ., 
+  data = train_data_rf,
+  ntree=500,
+  mtry=20,
+  nodesize=2
+)
+
+importance(best_rf)
+varImpPlot(best_rf)
+
+# Make predictions on training and testing datasets
+train_pred_default <- predict(best_rf, train_data_new)
+test_pred_default <- predict(best_rf, newdata = test_data1)
+
+# Calculate metrics for training and testing predictions (using default MSE and MAE)
+train_metrics_default <- postResample(train_pred_default, train_data1$baseRent)
+test_metrics_default <- postResample(test_pred_default, test_data1$baseRent)
+

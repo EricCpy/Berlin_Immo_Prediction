@@ -58,3 +58,6 @@ documents/libs
 # large files > 100Mb
 # https://www.kaggle.com/datasets/corrieaar/apartment-rental-offers-in-germany?resource=download
 data/immo_data.csv 
+
+# Remove random forests too large
+data/models/models_randomforest.rds
