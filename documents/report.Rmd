@@ -302,7 +302,7 @@ The imputation process using the *MICE* algorithm will generate five different d
 
 
 
-# Models
+# Models Overview
 
 The following chapter begins with an overview of the machine learning algorithms we plan to use for our models. The content in this section is primarily based on our lecture slides, with citations provided for any external sources. Subsequently, we will train various models and evaluate them.
 
@@ -458,29 +458,87 @@ The regularization strength is inversely related to \( C \), meaning higher valu
 SVR assigns zero prediction error to points within the \( \epsilon \)-insensitive tube. For points outside the tube (slack variables), the penalty is proportional to the magnitude of their deviation. The tolerance for small deviations and penalties for larger errors make SVR more robust to overfitting.
 
 
-
-## Our Models (Change title of this chapter)
+# Models Implementation
 TODO
 
 - geo_plz contains 214 levels on 10000 rows, likely that we get plzs in test data which arent in train data, 
 - we also did some sort of dimension reduction on the geo_plzs by adding the districts and have subdistricts inside the regio3
-
+- code for all models can be found in eric_model
+- we will do HPO only on the first gibbs otherwise it takes too long and as gibbs leaves the distributations etc same parameters are likely to still be near the optimal param
 
 a description of your fitting process for each method including, a summary of how
 you arrived at your final model, the choice of hyperparameters and how you made
 this choice, (8P)
 
-- fit each on not imputed data
 - on imputed data
 - with outliers
-- without outliers
+- without outliers only at the end for the final comparison with the best model
 
-### Decision Trees
+```{r createGibbsTrainTest, echo=TRUE, message=FALSE, warning=FALSE, cache=!full_refit}
+train_data1 <- train_data[[1]]
+test_data1 <- test_data[[1]]
+```
+
+### Regression Trees
+
+In this section, we focus on training a regression tree using the `rpart` package and visualizing the results. 
+
+To determine the optimal depth or number of splits for our tree, we use cross-validation. The `rpart` package simplifies this process by calculating the cross-validated error for each of the subtrees. These cross-validation results are stored in a complexity parameter table (`cptable`), which provides the cross-validation errors for the subtrees. This table helps us to assess the complexity needed when we prune our tree. Below, we display the first 10 rows of the `cptable` for our tree:
+
+```{r cpTable, echo=TRUE, message=FALSE, warning=FALSE, cache=!full_refit}
+default_tree <- rpart(
+  baseRent ~ .,
+  data = train_data1,
+  method = "anova"
+)
+print(head(default_tree$cptable, 10))
+```
+
+From the `cptable`, we can use two approaches to prune the tree:  
+1. **Lowest Cross-Validation Error:** Prune the tree to the complexity parameter corresponding to the lowest cross-validated error (`xerror`).  
+2. **Standard Deviation Rule:** Use the complexity parameter with the simplest tree whose error is within one standard deviation of the minimum cross-validated error. This approach is recommended by the authors of the `rpart` package.
+
+The following plot illustrates the first complexity parameters and cross-validation errors for our tree:
+
+```{r cpPlotDefaultTree, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.align='center', fig.cap="Default Tree Complexity", fig.width=6, fig.height=4}
+plotcp(default_tree) 
+```
+
+Using these methods, we pruned the full tree. The first splits of the pruned tree are shown below:
+
+```{r prunedTree, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.align='center', fig.cap="Tree First Splits", fig.width=6, fig.height=4}
+pruned_tree <- prune(default_tree, cp = default_tree$cptable[6])
+rpart.plot(pruned_tree) 
+```
+
+The pruning process helps to create a more interpretable tree while maintaining or even enhancing its predictive performance. Below, we compare the performance of the full tree and the two pruning techniques on the test data, averaged across all five imputed datasets. Note that the *full tree* does not necessarily imply only one node per leaf, other stopping parameters influence the structure. Having one terminal node per observation would be excessive and unnecessary.
+
+| Method                    | Average MSE  | Average RMSE | Average MAE  |
+|---------------------------|--------------|--------------|--------------|
+| **Full Tree**             | 130,515.9    | 361.22       | 204.53       |
+| **Best xError**           | 129,591.7    | 359.91       | 207.78       |
+| **Best (Authors' Method)**| 165,022.5    | 405.1        | 253.89       |
+
+
+From the table we observe the following:  
+1. **Full Tree:** Surprisingly, the full tree performs well on the test dataset, achieving competitive results in MSE and RMSE and the best results for mean absolute erro. This suggests a high degree of variance in the dataset.  
+2. **Best xError:** This pruning technique achieves significantly better results compared to the method recommended by the authors of the `rpart` package, as it has the lowest MSE and RMSE out of all methods.  
+3. **Authors Method:** While this approach prioritizes simplicity and generalization, it results in higher error values compared to the other methods. This means that this pruning method may not be the optimal choice for this dataset.
+
+
 
 ### Ensemble Methods
 - include comparison of decision tree vs ensemble
 
 ### SVMs
+
+### Ensemble Methods
+
+### Outlier Detection
+
+### Smaller Model
+
+
 
 ## Evaluation 
 - include comparison of ensmble tree methods and svms
