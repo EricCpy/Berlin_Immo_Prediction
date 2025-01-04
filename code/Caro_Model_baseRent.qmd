@@ -263,7 +263,8 @@ print(min(model$results$RMSE))
 # Define the hyperparameter grid for SVM
 hyper_grid <- expand.grid(
   C = c(0.1, 1, 10),
-  sigma = c(0.01, 0.1, 1)
+  degree = c(1, 2, 3, 4, 5),
+  scale = c(0.1, 1, 10)
 )
 
 # Create a training control object with 5-fold cross-validation
@@ -273,7 +274,7 @@ train_control <- trainControl(method = "cv", number = 5)
 model <- train(
   baseRent ~ .,
   data = Immotrain,
-  method = "svmRadial",
+  method = "svmPoly",
   trControl = train_control,
   tuneGrid = hyper_grid
 )
@@ -283,6 +284,29 @@ model <- train(
 
 ```{r}
 # model performance
-print(min(model$results$RMSE))
+print(min(model$results$RMSE, na.rm =TRUE))
+```
+```{r}
+#| include: false
+# Define the hyperparameter grid for SVM
+hyper_grid <- expand.grid(
+  C = c(0.1, 1, 10)
+)
+
+# Create a training control object with 5-fold cross-validation
+train_control <- trainControl(method = "cv", number = 5)
+
+# Train the SVM model with cross-validation and grid search
+model <- train(
+  baseRent ~ .,
+  data = Immotrain,
+  method = "svmLinear",
+  trControl = train_control,
+  tuneGrid = hyper_grid
+)
 ```
 
+```{r}
+# model performance
+print(min(model$results$RMSE, na.rm =TRUE))
+```
