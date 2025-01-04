@@ -87,7 +87,7 @@ berlin_data_for_model <- berlin_data_cleaned %>%
 
 generate_gibbs <- TRUE
 if (file.exists("./data/gibbs_berlin_data_for_model.rds")) {
-  gibbs_berlin_data_for_model <- readRDS("./data/gibbs_berlin_data_model.rds")
+  gibbs_berlin_data_for_model <- readRDS("./data/gibbs_berlin_data_for_model.rds")
   train_test_results <- generate_train_test_data_from_gibbs(gibbs_berlin_data_for_model)
   train_data <- train_test_results$train_data
   test_data <- train_test_results$test_data
