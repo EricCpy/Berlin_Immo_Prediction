@@ -61,3 +61,4 @@ data/immo_data.csv
 
 # Remove random forests too large
 data/models/models_randomforest.rds
+data/models/models_gbm.rds

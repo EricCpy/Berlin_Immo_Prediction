@@ -126,77 +126,41 @@ results <- train_and_evaluate_models(
 print(results)
 
 # ---- GBM -----
-# Load necessary libraries
-
-
-# Default GBM model (no tuning)
-default_gbm <- gbm(
-  baseRent ~ .,
-  data = train_data1,
-  distribution = "gaussian", # For regression
-  n.trees = 100,             # Default number of trees
-  interaction.depth = 1,     # Default depth
-  shrinkage = 0.1,           # Default learning rate
-  cv.folds = 0,              # No cross-validation for the default model
-  n.minobsinnode = 10        # Default minimum number of observations in a terminal node
-)
-
-# Tune GBM hyperparameters using caret
-train_control <- trainControl(
-  method = "cv",    # Cross-validation
-  number = 5,       # Number of folds
-  verboseIter = TRUE # Show progress
-)
-
-tuned_gbm <- train(
-  baseRent ~ ., 
-  data = train_data1, 
-  method = "gbm", 
-  trControl = train_control,
-  tuneGrid = expand.grid(
-    n.trees = c(100, 200, 300),         # Number of trees
-    interaction.depth = c(1, 3, 5),     # Tree depth
-    shrinkage = c(0.1, 0.05),           # Learning rate
-    n.minobsinnode = c(10, 20)          # Minimum observations in a node
-  ),
-  verbose = FALSE
-)
-
-# Best tuned GBM model
-best_gbm <- tuned_gbm$finalModel
-cat("Best hyperparameters:\n")
-print(tuned_gbm$bestTune)
-
-# Predictions for default and tuned models
-train_pred_default <- predict(default_gbm, newdata = train_data1, n.trees = 100)
-test_pred_default <- predict(default_gbm, newdata = test_data1, n.trees = 100)
-train_pred_tuned <- predict(best_gbm, newdata = train_data1, n.trees = tuned_gbm$bestTune$n.trees)
-test_pred_tuned <- predict(best_gbm, newdata = test_data1, n.trees = tuned_gbm$bestTune$n.trees)
-
-# Define a custom metrics function
-metrics <- function(actual, predicted) {
-  mse <- mean((actual - predicted)^2)
-  mae <- mean(abs(actual - predicted))
-  return(c(MSE = mse, MAE = mae))
+predict_function_gbm <- function(model, test_data) {
+  test_data_bool_as_factor <- test_data %>%
+    mutate(across(where(is.logical), as.factor))
+  
+  predict(model, test_data_bool_as_factor)
 }
 
-# Evaluate metrics
-train_metrics_default <- metrics(train_data1$baseRent, train_pred_default)
-test_metrics_default <- metrics(test_data1$baseRent, test_pred_default)
+train_model_function_gbm <- function(train_data) {
+  train_data_bool_as_factor <- train_data %>%
+    mutate(across(where(is.logical), as.factor))
+  
+  best_gbm <- gbm(
+    baseRent ~ .,
+    data = train_data_bool_as_factor,
+    distribution = "gaussian",
+    n.trees = 500,            
+    interaction.depth = 3,     
+    shrinkage = 0.05,        
+    n.minobsinnode = 10       
+  )
+}
 
-train_metrics_tuned <- metrics(train_data1$baseRent, train_pred_tuned)
-test_metrics_tuned <- metrics(test_data1$baseRent, test_pred_tuned)
+results <- train_and_evaluate_models(
+  train_data = train_data,
+  test_data = test_data,
+  train_model_function = train_model_function_gbm,
+  predict_function = predict_function_gbm,
+  saved_models = "data/models/models_gbm.rds",
+  save_model = TRUE
+)
 
-# Display metrics
-cat("Default GBM Metrics (Training): MSE =", train_metrics_default["MSE"], 
-    "MAE =", train_metrics_default["MAE"], "\n")
-cat("Default GBM Metrics (Testing): MSE =", test_metrics_default["MSE"], 
-    "MAE =", test_metrics_default["MAE"], "\n")
-cat("Tuned GBM Metrics (Training): MSE =", train_metrics_tuned["MSE"], 
-    "MAE =", train_metrics_tuned["MAE"], "\n")
-cat("Tuned GBM Metrics (Testing): MSE =", test_metrics_tuned["MSE"], 
-    "MAE =", test_metrics_tuned["MAE"], "\n")
+print(results)
 
+
+# ---- XGBOOST -----
 
 
 # ---- Test Stuff ----

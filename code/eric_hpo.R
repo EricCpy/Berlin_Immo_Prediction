@@ -136,3 +136,68 @@ test_pred_default <- predict(best_rf, newdata = test_data1)
 train_metrics_default <- postResample(train_pred_default, train_data1$baseRent)
 test_metrics_default <- postResample(test_pred_default, test_data1$baseRent)
 
+
+# ---- GBM ----
+train_data_bool_as_factor <- train_data1 %>%
+  mutate(across(where(is.logical), as.factor))
+
+test_data_bool_as_factor <- test_data1 %>%
+  mutate(across(where(is.logical), as.factor))
+
+train_control <- trainControl(method = "cv",number = 10)
+
+tuned_gbm <- train(
+  baseRent ~ ., 
+  data = train_data_bool_as_factor, 
+  method = "gbm", 
+  trControl = train_control,
+  tuneGrid = expand.grid(
+    n.trees = c(100, 200, 300, 500),    # Number of trees
+    interaction.depth = c(1, 2, 3),     # Tree depth
+    shrinkage = c(0.05, 0.1),           # Learning rate
+    n.minobsinnode = c(10, 20)          # Minimum observations in a node
+  ),
+  verbose = FALSE
+)
+
+tuned_gbm <- tuned_gbm$finalModel
+tuned_gbm
+
+# Best GBM model params
+#   n.trees interaction.depth shrinkage n.minobsinnode
+#20     500                 3      0.05             10
+
+best_gbm <- gbm(
+  baseRent ~ .,
+  data = train_data_bool_as_factor,
+  distribution = "gaussian", #laplace to optimize MAE # For regression
+  n.trees = 500,            
+  interaction.depth = 3,     
+  shrinkage = 0.05,        
+  n.minobsinnode = 10       
+)
+
+# Predictions for default and tuned models
+train_pred_best <- predict(best_gbm, newdata = train_data_bool_as_factor)
+test_pred_best <- predict(best_gbm, newdata = test_data_bool_as_factor)
+
+train_metrics_best <- metrics(train_data1$baseRent, train_pred_best)
+test_metrics_best <- metrics(test_data1$baseRent, test_pred_best)
+
+
+# Display metrics
+cat("Default GBM Metrics (Training): MSE =", train_metrics_best["MSE"], 
+    "MAE =", train_metrics_best["MAE"], "\n")
+cat("Default GBM Metrics (Testing): MSE =", test_metrics_best["MSE"], 
+    "MAE =", test_metrics_best["MAE"], "\n")
+
+pdp_data <- plot(best_gbm, i = "livingSpace", return.grid = TRUE)
+
+ggplot(pdp_data, aes(x = livingSpace, y = y)) +
+  geom_line() +
+  labs(
+    title = "Partial Dependence Plot for Living Space",
+    x = "Living Space",
+    y = "Base Rent"
+  ) +
+  theme_minimal()

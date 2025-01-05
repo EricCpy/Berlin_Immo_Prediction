@@ -484,7 +484,6 @@ test_data1 <- test_data[[1]]
 ## Regression Trees
 
 In this section, we focus on training a **regression tree** using the `rpart` package and visualizing the results. 
-
 To determine the optimal depth or number of splits for our tree, we use cross-validation. The `rpart` package simplifies this process by calculating the cross-validated error for each of the subtrees. These cross-validation results are stored in a complexity parameter table (`cptable`), which provides the cross-validation errors for the subtrees. This table helps us to assess the complexity needed when we prune our tree. Below, we display the first 10 rows of the `cptable` for our tree:
 
 ```{r cpTable, echo=TRUE, message=FALSE, warning=FALSE, cache=!full_refit}
@@ -531,7 +530,6 @@ From the table we observe the following:
 
 ## Support Vector Machines
 In this section, we focus on training a **SVM** for regression using the `e1071` package. 
-
 SVM Regression is a distance based algorithm, which means they calculate distances between data points to make decisions. One key consideration when using SVMs is that variables with larger scales can dominate the distance calculations, potentially leading to inaccurate results. This is because the SVMs decision boundary relies on calculating the distance between points. Therefore normalizing or standardizing data is crucial to ensure that each feature contributes equally to the model. 
 
 For tuning the SVM parameters and validating its performance, we performed cross-validation on one of our imputed datasets with the following settings, where the best parameter combination is indicated in bold.
@@ -560,7 +558,7 @@ In this case the results of SVM fitting over all imputed datasets are as follows
 
 When comparing SVMs to simple regression trees, we can see that SVMs performed slightly better. Decision trees are more interpretable, but also prone to overfitting, especially when there are many features or complex relationships in the data. SVMs tend to generalize better, which leads to lower error metrics.  
 While both models have their advantages, the SVMs performance suggests it is better suited for this particular dataset, likely due to its improved ability to handle outliers and avoid overfitting. 
-To evaluate these statements, we plotted a regression line for `livingSpace`, one of the variables with the highest correlation to `baseRent`. The plot shows that the model does not overfit to all outliers, but the still appears to be strongly overfitted.
+To evaluate these statements, we plotted a regression line with the training data predictions for `livingSpace`, one of the variables with the highest correlation to `baseRent`. The plot indicates that the model demonstrates resilience to certain outliers and appears to generalize reasonably well, as its prediction is between the range of the minimum and maximum `baseRent`.
 
 ```{r regressionLineSVMLivingSpace, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.align='center', fig.cap="Living Space vs Base Rent", fig.width=6, fig.height=4}
 svm_model1 <- readRDS("data/models/models_svm.rds")[1]
@@ -577,7 +575,6 @@ ggplot(train_data1, aes(x = livingSpace, y = baseRent)) +
 
 ## Random Forest
 In this section, we focus on training a **random forest** using the `randomForest` package.
-
 Random forests in R cannot natively handle variables with more than 53 categorical features. This restriction posed a challenge in our dataset, as the regio3 variable contains more than 53 unique categories. Consequently, we excluded this variable from the random forest training process. While this exclusion makes a direct comparison with other models somewhat unfair, we believe that random forests' ability to reduce noise and capture complex interactions still allows them to outperform single decision trees and SVMs in general.
 
 To optimize the random forest model, we performed cross-validation on one of the imputed datasets using the following parameters, where the best parameter combination is indicated in bold.  
@@ -610,31 +607,67 @@ Random forests demonstrated superior performance in terms of error metrics compa
 
 
 
-## Gradient Boosting
-- include comparison of decision tree vs ensemble
+## Gradient Boosting Machine
+
+In this section, we focus on training a **gradient boosting machine (GBM)** using the `gbm` package in R. 
+Unlike random forests, gradient boosting emphasizes optimization by minimizing a loss function iteratively, which often results in highly predictive models, but with a higher risk of overfitting.
+
+To optimize the GBM model, we performed a grid search using cross-validation on one of the imputed datasets. The parameters explored and their implications are as follows:  
+
+- **Number of Trees** (100, 200, 300, **500**)  
+  The number of boosting iterations. More trees typically improve performance up to a point but increase computational cost and the risk of overfitting.  
+
+- **Tree Depth** (1, 2, **3**)  
+  The maximum depth of each tree. A smaller depth helps prevent overfitting and ensures the model captures simpler interactions, while deeper trees can model more complex relationships.  
+
+- **Shrinkage** (**0.05**, 0.1)  
+  Also known as the learning rate, this parameter controls how much each tree contributes to the final model. Smaller values slow down the learning process and can lead to more robust models.  
+
+- **Minimum Observations per Node** (**10**, 20)  
+  The minimum number of observations in terminal nodes. Higher values result in simpler trees and prevent overfitting by reducing model complexity.
+
+Using the best combination (**bold**), we evaluated the GBMs performance across all imputed datasets, summarized as follows:  
+
+| Method                | Average MSE  | Average RMSE | Average MAE  |
+|-----------------------|--------------|--------------|--------------|
+| **Gradient Boosting** | 94,612.16    | 307.51       | 177.78       |  
+
+A partial dependence plot illustrates the relationship between a predictor variable and the target variable while holding other features constant. This visualization helps interpret the influence of individual predictors on the models predictions and provides insights into how a specific variable affects the target. The plot below highlights the relationship between `livingSpace` and `baseRent`.
+
+```{r pdpGbm, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Wordcloud of Titles", fig.align='center', fig.width=5, fig.height=4}
+img <- readPNG("./documents/images/pdp_gbm.png")
+grid::grid.raster(img)
+```
+
+The partial dependence plot for `livingSpace` demonstrates a good fit, considering the [high correlation](#exploring-correlations-between-variables) with the target variable. The absence of abrupt changes in the plot highlights the robustness.
+
+Gradient boosting only outperformed single decision trees in all error metrics. Compared to random forests and SVMs, GBMs demonstrated slightly higher errors but offered the advantage of interpretable partial dependence plots. While random forests are more robust to noise due to their averaging mechanism, gradient boosting prioritizes correcting previous errors, which can lead to overfitting to noise. This tendency may explain why the model underperforms compared to random forests and SVMs when dealing with our data, which contains a high levels of noise.
 
 
 ## XGBoost
-
-
-
-
-
-## Ensemble Methods
-
+TODO
 
 
 ## Outlier Detection
-
+TODO
 
 
 ## Smaller Model
+TODO
+- mention random forest
+- mention correlation
+- mention boxplots
+- mention that one could do PCA to see variables with high variance
+- mention that one could do MCA to see categorical variables with high variance
 
 
-
-# Model Evaluation 
-- include comparison of ensmble tree methods and svms
-
+# Model Evaluation
+TODO
+- plot predicted values of best model against real values
+- plot distribution of predicted and trues
+- include district evaluation 
+- write something like a small conclusion
+- mention that models could have performed different if we used less columns for all but we only done this for the best model
 
 
 # Evaluation on current apartments
