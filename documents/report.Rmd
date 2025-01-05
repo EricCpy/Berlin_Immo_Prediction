@@ -461,25 +461,21 @@ SVR assigns zero prediction error to points within the \( \epsilon \)-insensitiv
 
 
 # Model Implementation
-TODO
+This chapter describes the implementation of the models trained on our dataset, outlining key considerations and decisions made to optimize our models. The following topics are covered: model training, hyperparameter optimization, managing outliers and reducing model size.
 
-- geo_plz contains 214 levels on 10000 rows, likely that we get plzs in test data which arent in train data, 
-- we also did some sort of dimension reduction on the geo_plzs by adding the districts and have subdistricts inside the regio3
-- code for all models can be found in eric_model
-- we will do HPO only on the first gibbs otherwise it takes too long and as gibbs leaves the distributations etc same parameters are likely to still be near the optimal param
+One challenge we faced was the diversity of geographic data inside the `geo_plz` variable, which includes 214 unique levels across 10,000 rows. This introduces the potential issue of encountering postal codes in the test data that were not present in the training data. To address this we removed the `geo_plz` variable by grouping data into broader districts and subdistricts within the `regio3` category. This also helps to capture meaningful geographic relationships while minimizing overfitting risks.
 
-a description of your fitting process for each method including, a summary of how
-you arrived at your final model, the choice of hyperparameters and how you made
-this choice, (8P)
+The implementation of all basic models is included in `eric_model.R`. Hyperparameter optimization (HPO) is conducted exclusively on a single Gibbs-imputed dataset in `eric_hpo.R`. This approach was selected to save computational resources, as Gibbs iterations maintain consistent distributions and variables with the highest correlations in our dataset have fewer missing values.
 
-- on imputed data
-- with outliers
-- without outliers only at the end for the final comparison with the best model
+The implementation of all basic models is contained in the `eric_model.R`. Hyperparameter optimization (HPO) is performed exclusively on one Gibbs imputed dataset. This decision was made to save computation power and because Gibbs iterations retain consistent distributions, which means that variance captured could stays the same.
+
+All models are then trained using the hyperparameters found through HPO on all of our imputed datasets to evaluate its performance. Additionally, outlier management is an aspect of our analysis, with experiments conducted both including and excluding outliers. Outlier free datasets are reserved for a final comparison. Finally, we will explore if it is possible to reduce the model size and evaluate how the models perform with fewer columns and potentially less noise.
 
 ```{r createGibbsTrainTest, echo=TRUE, message=FALSE, warning=FALSE, cache=!full_refit}
 train_data1 <- train_data[[1]]
 test_data1 <- test_data[[1]]
 ```
+
 
 ## Regression Trees
 
