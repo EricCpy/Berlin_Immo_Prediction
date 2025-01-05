@@ -15,6 +15,7 @@ library(gbm)
 library(randomForest)
 library(caret)
 library(png)
+library(xgboost)
 
 source("./code/helper_functions.R")
 source("./code/data_etl.R")

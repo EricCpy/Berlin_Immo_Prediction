@@ -172,12 +172,25 @@ best_gbm <- gbm(
   data = train_data_bool_as_factor,
   distribution = "gaussian", #laplace to optimize MAE # For regression
   n.trees = 500,            
-  interaction.depth = 3,     
+  interaction.depth = 6,     
   shrinkage = 0.05,        
   n.minobsinnode = 10       
 )
 
-# Predictions for default and tuned models
+# Importance Plot
+importance <- summary(best_gbm, plotit = FALSE)
+
+ggplot(importance, aes(x = reorder(var, rel.inf), y = rel.inf)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Variable Importance Plot",
+    x = "Variables",
+    y = "Relative Influence"
+  ) +
+  theme_minimal()
+
+# Predictions for best models
 train_pred_best <- predict(best_gbm, newdata = train_data_bool_as_factor)
 test_pred_best <- predict(best_gbm, newdata = test_data_bool_as_factor)
 
@@ -201,3 +214,101 @@ ggplot(pdp_data, aes(x = livingSpace, y = y)) +
     y = "Base Rent"
   ) +
   theme_minimal()
+
+# ---- XGBoost ----
+# Perform One Hot Encoding Because xgb cant deal with factors on its own
+dummies <- dummyVars(baseRent ~ ., data = train_data1)
+train_encoded <- data.frame(predict(dummies, newdata = train_data1))
+test_encoded <- data.frame(predict(dummies, newdata = test_data1))
+
+train_matrix <- xgb.DMatrix(data = as.matrix(train_encoded), label = train_data1$baseRent)
+test_matrix <- xgb.DMatrix(data = as.matrix(test_encoded), label = test_data1$baseRent)
+
+# Random Grid Search CV
+grid <- expand.grid(
+  eta = c(0.01, 0.05, 0.1, 0.3, 0.5),      # Learning rates
+  max_depth = c(1, 3, 6, 9),               # Tree depths
+  min_child_weight = c(1, 2, 5, 10),       # Minimum child weight
+  subsample = c(0.6, 0.8, 1.0),            # Row sampling ratios
+  colsample_bytree = c(0.6, 0.8, 1.0)      # Feature sampling ratios
+)
+set.seed(2024)
+grid_sample <- grid[sample(nrow(grid), size = 100), ]
+
+results <- list()
+for (i in 1:nrow(grid_sample)) {
+  params <- list(
+    objective = "reg:squarederror", 
+    booster = "gbtree",
+    eta = grid$eta[i],
+    max_depth = grid$max_depth[i],
+    min_child_weight = grid$min_child_weight[i],
+    subsample = grid$subsample[i],
+    colsample_bytree = grid$colsample_bytree[i]
+  )
+  
+  cv_results <- xgb.cv(
+    params = params,
+    data = train_matrix,
+    nrounds = 1000,           
+    nfold = 10,              
+    metrics = "rmse",                 
+    early_stopping_rounds = 10,
+    verbose = TRUE,
+    nthread = 10
+  )
+  
+  results[[i]] <- list(
+    params = params,
+    best_iteration = cv_results$best_iteration,
+    rmse = min(cv_results$evaluation_log$test_rmse_mean)
+  )
+}
+
+best_result <- results[[which.min(sapply(results, function(x) x$rmse))]]
+best_params <- best_result$params
+best_nrounds <- best_result$best_iteration
+
+# Train model with best params
+xgb_model_best <- xgboost(
+  data = train_matrix,
+  objective = "reg:squarederror",
+  nrounds = 1000, # we dont need to use best rounds, uses best rounds by default 
+  eta = 0.1,
+  max_depth=6,
+  min_child_weight=2,
+  subsample=0.8,
+  colsample_bytree=0.6,
+  verbose = FALSE
+)
+
+# Evaluation
+importance_matrix <- xgb.importance(model = xgb_model_best)
+
+## Transform back to column representation
+processed_importance <- importance_matrix %>%
+  mutate(Feature = str_remove(Feature, "\\..*"),
+         Feature = str_remove(Feature, "TRUE|FALSE")) %>%
+  group_by(Feature) %>% 
+  summarize(across(Gain:Importance, sum))
+
+## Plot
+print(processed_importance)
+ggplot(processed_importance, aes(x = reorder(Feature, Importance), y = Importance)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Variable Importance Plot",
+    x = "Variables",
+    y = "Relative Influence"
+  ) +
+  theme_minimal()
+# worse than ggplot but native
+# xgb.plot.importance(importance_matrix = importance_matrix[1:20])
+
+train_pred <- predict(final_model, train_matrix)
+test_pred <- predict(final_model, test_matrix)
+
+train_metrics <- metrics(train_data1$baseRent, train_pred)
+test_metrics <- metrics(test_data1$baseRent, test_pred)
+

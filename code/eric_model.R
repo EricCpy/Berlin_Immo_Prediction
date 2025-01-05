@@ -137,12 +137,12 @@ train_model_function_gbm <- function(train_data) {
   train_data_bool_as_factor <- train_data %>%
     mutate(across(where(is.logical), as.factor))
   
-  best_gbm <- gbm(
+  gbm(
     baseRent ~ .,
     data = train_data_bool_as_factor,
     distribution = "gaussian",
     n.trees = 500,            
-    interaction.depth = 3,     
+    interaction.depth = 6,     
     shrinkage = 0.05,        
     n.minobsinnode = 10       
   )
@@ -161,7 +161,41 @@ print(results)
 
 
 # ---- XGBOOST -----
+predict_function_xgb <- function(model, test_data) {
+  # One hot encoding
+  dummies <- dummyVars(baseRent ~ ., data = test_data)
+  test_encoded <- data.frame(predict(dummies, newdata = test_data))
+  test_matrix <- xgb.DMatrix(data = as.matrix(test_encoded), label = test_data$baseRent)
+  
+  predict(model, test_matrix)
+}
 
+train_model_function_xgb <- function(train_data) {
+  # One hot encoding
+  dummies <- dummyVars(baseRent ~ ., data = train_data)
+  train_encoded <- data.frame(predict(dummies, newdata = train_data))
+  train_matrix <- xgb.DMatrix(data = as.matrix(train_encoded), label = train_data$baseRent)
+  
+  xgb_model_best <- xgboost(
+    data = train_matrix,
+    objective = "reg:squarederror",
+    nrounds = 1000,
+    eta = 0.1,
+    max_depth=6,
+    min_child_weight=2,
+    subsample=0.8,
+    colsample_bytree=0.6,
+    verbose = FALSE
+  )
+}
 
-# ---- Test Stuff ----
+results <- train_and_evaluate_models(
+  train_data = train_data,
+  test_data = test_data,
+  train_model_function = train_model_function_xgb,
+  predict_function = predict_function_xgb,
+  saved_models = "",
+  save_model = FALSE
+)
 
+print(results)
