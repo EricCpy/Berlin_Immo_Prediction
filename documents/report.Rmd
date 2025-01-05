@@ -647,8 +647,75 @@ TODO
 
 
 ## Outlier Detection
-TODO
+In the dataset we have a big variance of prices and a few high priced apartments. To improve model performance, it can be worth treating these highly priced apartments as outliers. They are underrepresented in the data and therefore tough to predict.
 
+### Filtering out outliers from the data
+To find a sound border to outlier apartments, we use the boxplot logic to classify outliers. After this definition, all values bigger or smaller than 1.5 times the interquartile range from the median get excluded. 
+```{r boxplot_baseRent, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Boxplot for baseRent", fig.align='center', fig.width=5, fig.height=4}
+ggplot(berlin_data_cleaned, aes(x = baseRent)) + 
+  geom_boxplot() + 
+  labs(title = "Distribution of Base Rent", x = "Base Rent", y = "Frequency")
+```
+We can see from the boxplot, that there are only expensive apartments that are considered outliers, not cheap ones. Therefore it is only necessary to calculate the upper bound to define it as an outlier border.
+```{r outlier_bound_calculation, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+iqr <- IQR(berlin_data_cleaned$baseRent)
+q3 <- quantile(berlin_data_cleaned$baseRent, 0.75)
+upper_bound <- unname(q3 + (1.5 * iqr))
+```
+When calculating the upper bound, all flats with a price higher than `r toString(upper_bound)`€ should be excluded.
+```{r no_outliers_test_train, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+test_gibbs <- complete(gibbs_berlin_data_for_model, 1)
+test_gibbs <- test_gibbs |>
+  filter(baseRent < upper_bound)
+
+set.seed(123)
+train_fraction <- 0.8
+train_index <- sample(seq_len(nrow(test_gibbs)), size = train_fraction * nrow(test_gibbs))
+train_data_no_outliers <- test_gibbs[train_index, ]
+test_data_no_outliers <- test_gibbs[-train_index, ]
+
+train_data_bool_as_factor <-  train_data_no_outliers |>
+  mutate(across(where(is.logical), as.factor))
+test_data_bool_as_factor <-  test_data_no_outliers |>
+  mutate(across(where(is.logical), as.factor))
+```
+
+### GBM without outliers
+```{r gbm_no_outliers, echo=FALSE, message=FALSE, warning=FALSE}
+model <- gbm(baseRent ~ .,
+    data = train_data_bool_as_factor,
+    distribution = "gaussian",
+    n.trees = 500,
+    interaction.depth = 3,
+    shrinkage = 0.05,
+    n.minobsinnode = 10 
+)
+
+predictions <- predict(model, test_data_bool_as_factor)
+mse_gbm_no_outliers <- mean((test_data_bool_as_factor$baseRent - predictions)^2)
+rmse_gbm_no_outliers <- sqrt(mse)
+mae_gbm_no_outliers <- mean(abs(test_data_bool_as_factor$baseRent - predictions))
+```
+When training the GBM model without outliers, the error results are as follows:
+
+| Method                | MSE  | RMSE | MAE  |
+|-----------------------|--------------|--------------|--------------|
+| **Gradient Boosting no outliers** | `r toString(mse_gbm_no_outliers)` | `r toString(rmse_gbm_no_outliers)` | `r toString(mae_gbm_no_outliers)` |
+| **Gradient Boosting with outliers** | 94,612.16    | 307.51       | 177.78    |
+
+### SVM without outliers
+```{r svm_no_outliers, echo=FALSE, message=FALSE, warning=FALSE}
+model <- readRDS("./data/svm_model_baseRent_no_outliers.rds")
+predictions <- predict(model, test_data_bool_as_factor)
+mse_svm_no_outliers <- mean((test_data_bool_as_factor$baseRent - predictions)^2)
+rmse_svm_no_outliers <- sqrt(mse)
+mae_svm_no_outliers <- mean(abs(test_data_bool_as_factor$baseRent - predictions))
+```
+When training the SVM model without outliers, the error results are as follows:
+| Method                    | MSE  | RMSE | MAE  |
+|---------------------------|--------------|--------------|--------------|
+| **SVM no outliers**                   | `r toString(mse_svm_no_outliers)` |`r toString(rmse_svm_no_outliers)`| `r toString(mae_svm_no_outliers)`|
+| **SVM with outliers**                   | 114,781.2    | 338.71       | 169.77       |
 
 ## Model Size Reduction
 TODO
