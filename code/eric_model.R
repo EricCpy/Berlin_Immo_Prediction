@@ -1,5 +1,31 @@
 source("code/setup.R")
 
+# ---- Data Preparation ----
+## ---- Outlier Management ----
+train_no_outliers = F
+test_no_outliers = F
+if (test_no_outliers || train_no_outliers) {
+  column <- "baseRent"
+  
+  # all Gibbs have the same lower_bound and upper_bound due to gibbs keeping the distribution same
+  Q1 <- quantile(berlin_data_for_model[[column]], 0.25, na.rm = TRUE)
+  Q3 <- quantile(berlin_data_for_model[[column]], 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  
+  for (i in 1:length(train_data)) {
+    train_data_i <- train_data[[i]]
+    test_data_i <- test_data[[i]]
+    if (train_no_outliers) {
+      train_data[[i]] <- train_data_i[train_data_i[[column]] >= lower_bound & train_data_i[[column]] <= upper_bound, ]
+    }
+    if (test_no_outliers) {
+      test_data[[i]] <- test_data_i[test_data_i[[column]] >= lower_bound & test_data_i[[column]] <= upper_bound, ]
+    }
+  }
+}
+
 # ---- Decision Trees ----
 train_model_function_tree_full <- function(train_data) {
   rpart(
@@ -194,8 +220,9 @@ results <- train_and_evaluate_models(
   test_data = test_data,
   train_model_function = train_model_function_xgb,
   predict_function = predict_function_xgb,
-  saved_models = "",
-  save_model = FALSE
+  saved_models = "data/models/models_xgb.rds",
+  save_model = TRUE
 )
 
 print(results)
+

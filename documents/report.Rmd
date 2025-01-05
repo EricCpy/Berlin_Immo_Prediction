@@ -37,7 +37,7 @@ output_type = "gitbook" # "gitbook" or "pdf"
 
 # Introduction
 
-Understanding rent prices in Berlin is essential for anyone looking to rent an apartment in the city, given its dynamic housing market and the growing demand for affordable living spaces. To address this, our project focuses on analyzing historical rental data from Berlin in 2020, aiming to uncover insights and develop predictive models that estimate rental prices based on key property attributes and evaluate them on current apartment offers.
+Understanding rent prices in Berlin is essential for anyone looking to rent an apartment in the city, given its dynamic housing market and the growing demand for affordable living spaces. To address this, our project focuses on analyzing historical rental data from Berlin in 2020, aiming to uncover insights and develop predictive models that estimate rental prices based on key property attributes and evaluate them.
 
 The following dataset, available at [Kaggle](https://www.kaggle.com/datasets/corrieaar/apartment-rental-offers-in-germany/data), contains information about rental properties listed on ImmoScout24. The data was scraped from ImmoScout24 between February and October 2020 and includes listings from all German federal states. For our project, we will focus exclusively on Berlin and train a model to predict either the `totalRent` or the `basePrice`.
 
@@ -59,6 +59,7 @@ The data provided in the Kaggle dataset consists of approximately 268,000 rental
 
 - **Model Selection and Comparison**:\
   We aim to train a series of tree-based models on the dataset to predict the `baseRent` of an apartment, starting from simple decision trees that can provide explainable predictions and gradually progressing to more complex models such as Random Forests. Additionally, we will compare the performance of these tree-based methods with Support Vector Machine (SVM) regression to determine which approach yields the best results.
+
 
 # Data Overview and Cleaning
 
@@ -477,7 +478,7 @@ All models are then trained using the hyperparameters found through HPO on all o
 
 | Method                    | Average MSE  | Average RMSE | Average MAE  |
 |---------------------------|--------------|--------------|--------------|
-| **Best Tree**             | 129,591.7    | 359.91       | 207.78       |
+| **Regression Tree**       | 129,591.7    | 359.91       | 207.78       |
 | **SVM**                   | 114,781.2    | 338.71       | 169.77       |
 | **Random Forest**         | 92,827.36    | 304.65       | 167.32       |
 | **Gradient Boosting**     | 92,214.98    | 303.3272     | 170.3922     |
@@ -653,7 +654,7 @@ The partial dependence plot for `livingSpace` demonstrates a good fit, consideri
 
 The variable importance analysis for our GBM models reveals that the `regio3` column is significantly more influential than the `district` column. Since the `district` column is an abstraction of `regio3`, removing `regio3` results in a substantial loss of information. Additionally, an interesting observation is that `noRooms` holds greater importance in the GBM models compared to `yearConstructed`, which contrasts with the findings from the random forest models, where `constructionYear` is more influential.
 
-```{r randomForestVarImportance, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="GBM Variable Influence", fig.align='center', fig.width=5, fig.height=4}
+```{r gbmVarImportance, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="GBM Variable Influence", fig.align='center', fig.width=5, fig.height=4}
 img <- readPNG("./documents/images/gbm_variable_influence.png")
 grid::grid.raster(img)
 ```
@@ -703,78 +704,88 @@ XGBoost delivered the best results out of all methods tested, even with the defa
 
 
 
-## Outlier Detection
-In the dataset we have a big variance of prices and a few high priced apartments. To improve model performance, it can be worth treating these highly priced apartments as outliers. They are underrepresented in the data and therefore tough to predict.
+## Outlier Handling
 
-### Filtering out outliers from the data
-To find a sound border to outlier apartments, we use the boxplot logic to classify outliers. After this definition, all values bigger or smaller than 1.5 times the interquartile range from the median get excluded. 
-```{r boxplot_baseRent, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Boxplot for baseRent", fig.align='center', fig.width=5, fig.height=4}
-ggplot(berlin_data_cleaned, aes(x = baseRent)) + 
-  geom_boxplot() + 
-  labs(title = "Distribution of Base Rent", x = "Base Rent", y = "Frequency")
+The dataset has a significant variance in prices, with a few high-priced apartments in the distribution (*long-tail*). To evaluate the robustness of our models against outliers, we propose the following tests:  
+
+1. **Training and Testing on Outlier-Free Data**:  
+   We will retrain the models on a dataset that excludes outliers and test their performance on outlier-free test data.  
+
+2. **Testing Existing Models on Outlier-Free Data**:  
+   We will assess the performance of our previously trained models (which included outliers during training) on the outlier-free test data.  
+
+If the models trained with outliers perform as well as those trained without outliers, it would indicate that our models are robust and not significantly influenced by outliers. Vice versa if the performance of the outlier-free models is superior, it suggests that excluding outliers could improve predictions for common apartments.  
+
+**Why focus on more common apartments?**  
+There are several reasons:  
+- Outliers may represent corrupted data that do not occur in real-world scenarios.  
+- Most potential users of the model may not be wealthy and are likely more interested in predictions for mid-range apartments.  
+- Prioritizing accuracy for mid-range apartments aligns better with the needs of the target audience, ensuring more practical and relevant predictions.  
+
+By focusing on this approach, we aim to enhance the reliability and usability of our predictions.
+
+
+### Outlier Removal
+
+To detect outlier apartments, we use a boxplot logic. After this definition, all values bigger or smaller than 1.5 times the interquartile range from the median get excluded. The following plot shows the `baseRent` outliers for our whole dataset:
+
+```{r boxplotBaseRent, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Boxplot for Base Rent", fig.align='center', fig.width=5, fig.height=4}
+ggplot(berlin_data_for_model, aes(x = baseRent)) + 
+    geom_boxplot() + 
+    labs(x = "Base Rent", y = "") +
+    theme(axis.text.y = element_blank(),
+          axis.ticks.y = element_blank())
 ```
-We can see from the boxplot, that there are only expensive apartments that are considered outliers, not cheap ones. Therefore it is only necessary to calculate the upper bound to define it as an outlier border.
-```{r outlier_bound_calculation, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
-iqr <- IQR(berlin_data_cleaned$baseRent)
+
+
+We can see from the boxplot, that there are only expensive apartments that are considered outliers. Therefore it is only necessary to calculate the upper bound to define it as an outlier border.
+
+```{r outlierBoundCalculation, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+iqr <- IQR(berlin_data_for_model$baseRent)
 q3 <- quantile(berlin_data_cleaned$baseRent, 0.75)
 upper_bound <- unname(q3 + (1.5 * iqr))
 ```
 When calculating the upper bound, all flats with a price higher than `r toString(upper_bound)`€ should be excluded.
-```{r no_outliers_test_train, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
-test_gibbs <- complete(gibbs_berlin_data_for_model, 1)
-test_gibbs <- test_gibbs |>
-  filter(baseRent < upper_bound)
 
-set.seed(123)
-train_fraction <- 0.8
-train_index <- sample(seq_len(nrow(test_gibbs)), size = train_fraction * nrow(test_gibbs))
-train_data_no_outliers <- test_gibbs[train_index, ]
-test_data_no_outliers <- test_gibbs[-train_index, ]
 
-train_data_bool_as_factor <-  train_data_no_outliers |>
-  mutate(across(where(is.logical), as.factor))
-test_data_bool_as_factor <-  test_data_no_outliers |>
-  mutate(across(where(is.logical), as.factor))
-```
+### Model Performance
 
-### GBM without outliers
-```{r gbm_no_outliers, echo=FALSE, message=FALSE, warning=FALSE}
-model <- gbm(baseRent ~ .,
-    data = train_data_bool_as_factor,
-    distribution = "gaussian",
-    n.trees = 500,
-    interaction.depth = 3,
-    shrinkage = 0.05,
-    n.minobsinnode = 10 
-)
+Our initial hypothesis is that models that are better equipped to handle noise, such as random forests, will show smaller performance increases when trained with and without outliers, when the evaluation is done on outlier free test data. Models like Gradient Boosting, Regression Trees and XGBoost often benefit from the removal of outliers since their algorithms are sensitive to extreme values that can influence the structure of the decision boundaries or the boosting process. These models can more effectively generalize when the noise introduced by outliers is reduced.
 
-predictions <- predict(model, test_data_bool_as_factor)
-mse_gbm_no_outliers <- mean((test_data_bool_as_factor$baseRent - predictions)^2)
-rmse_gbm_no_outliers <- sqrt(mse)
-mae_gbm_no_outliers <- mean(abs(test_data_bool_as_factor$baseRent - predictions))
-```
-When training the GBM model without outliers, the error results are as follows:
+It is important to note that we did not optimize the hyperparameters for the models trained on the dataset without outliers. All models were evaluated on outlier-free data. The error metrics are presented in the table below:
 
-| Method                | MSE  | RMSE | MAE  |
-|-----------------------|--------------|--------------|--------------|
-| **Gradient Boosting no outliers** | `r toString(mse_gbm_no_outliers)` | `r toString(rmse_gbm_no_outliers)` | `r toString(mae_gbm_no_outliers)` |
-| **Gradient Boosting with outliers** | 94,612.16    | 307.51       | 177.78    |
+| Method                    | Trained With Outliers | Average MSE | Average RMSE  | Average MAE |
+|---------------------------|-----------------------|-------------|---------------|-------------|
+| **Regression Tree**       | YES                   |63658        | 252           | 179         |
+| **Regression Tree**       | NO                    |52322        | 229           | 168         |
+| **SVM**                   | YES                   |43701        | 209           | 143         |
+| **SVM**                   | NO                    |38546        | 196           | 138         |
+| **Random Forest**         | YES                   |44653        | 211           | 146         |
+| **Random Forest**         | NO                    |39227        | 198           | 139         |
+| **Gradient Boosting**     | YES                   |46736        | 216           | 154         |
+| **Gradient Boosting**     | NO                    |34438        | 186           | 135         |
+| **XGBoost**               | YES                   |39065        | 198           | 134         |
+| **XGBoost**               | NO                    |32187        | 179           | 126         |
 
-### SVM without outliers
-```{r svm_no_outliers, echo=FALSE, message=FALSE, warning=FALSE}
-model <- readRDS("./data/svm_model_baseRent_no_outliers.rds")
-predictions <- predict(model, test_data_bool_as_factor)
-mse_svm_no_outliers <- mean((test_data_bool_as_factor$baseRent - predictions)^2)
-rmse_svm_no_outliers <- sqrt(mse)
-mae_svm_no_outliers <- mean(abs(test_data_bool_as_factor$baseRent - predictions))
-```
-When training the SVM model without outliers, the error results are as follows:
-| Method                    | MSE  | RMSE | MAE  |
-|---------------------------|--------------|--------------|--------------|
-| **SVM no outliers**                   | `r toString(mse_svm_no_outliers)` |`r toString(rmse_svm_no_outliers)`| `r toString(mae_svm_no_outliers)`|
-| **SVM with outliers**                   | 114,781.2    | 338.71       | 169.77       |
+Here we can see that all methods significantly improved on the outlier-free data when we trained them without outliers. 
 
-## Model Size Reduction
+The order of the models, based on their improvement in RMSE (bold) after removing outliers, is as follows:
+
+1. Gradient Boosting **30**
+2. Regression Tree **23**
+3. XGBoost **19**
+4. SVM **13**
+5. Random Forest **13**
+
+This order could be due to the specific nature of each algorithms sensitivity to outliers and our selected parameters. For example, Gradient Boosting iteratively builds weak learners and is particularly impacted by outliers because each subsequent tree tries to correct for errors from previous ones. If the initial trees are influenced by outliers, it can lead to a cascading effect of poor learning.  
+Regression Trees, while also sensitive to outliers, tend to generalize better than weak learners in the presence of outliers, but extreme outliers can still influence splits.  
+XGBoost employs regularization techniques that can reduce the impact of outliers, but it still performs best when noise is minimized.  
+SVM and Random Forest, on the other hand, are less sensitive to individual data points but can still be affected by outliers. Random Forest, being an ensemble method, is somewhat more robust due to averaging over many trees, but it too benefits from cleaner data for optimal performance.  
+
+In summary, the degree of improvement in RMSE across different models when outliers are removed is likely related to the inherent characteristics of each model in handling outliers and noise. Models that rely more heavily on learning from the Variance, such as Gradient Boosting, show the greatest improvement when outliers are removed.
+
+
+## Model Size Reduction (REFACTOR)
 When looking at the variable important of a random forest classifier, the variables
 contributing most to node purity are livingSpace, which has by far the most impact,
 followed by serviceCharge. Both of these variables have a strong positive correlation
@@ -799,27 +810,14 @@ will be trained only on the following selected variables to evaluate the perform
 heatingType, yearConstructed, hasKitchen, livingSpace, condition, interiorQual,
 typeOfFlat, noRooms, thermalChar, heatingCosts and district.
 
-```{r variable_selection_small_model, echo=FALSE, message=FALSE, warning=FALSE}
 
-```
-
-
-
-# Model Evaluation
-TODO
+# Model Evaluation (TODO)
 - plot predicted values of best model against real values
 - plot distribution of predicted and trues
 - include district evaluation 
 - write something like a small conclusion
 - mention that models could have performed different if we used less columns for all but we only done this for the best model
 
-
-# Evaluation on current apartments
-Why it might fail?
-Market Demand and Supply: An imbalance between the number of available apartments and the demand from potential tenants leads to price fluctuations. High demand with limited supply results in increased rents. 
-Economic Conditions: The general economic situation and income development of the population in Berlin play a role in determining rental prices. 
-(https://eichenglobal.com/en/blog/mietspiegel-2024-berlin/)
-Government Policies: Regulations such as rent caps or tenant protection laws can influence rental prices by limiting increases and affecting market dynamics. (https://www.pwc.de/en/real-estate/rent-cap-and-regulation-of-the-real-estate-market.html)
 
 # References
 
