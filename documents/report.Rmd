@@ -18,6 +18,7 @@ nocite:
 - "@rasifaghihi_support_vector_regressor_2023"
 - "@gunay_understanding_parameters_svm_2021"
 - "@lejlot_svc_coef0_parameter_range_2013"
+- "@molnar_guide_explainable_models_2024"
 editor_options: 
   chunk_output_type: inline
 ---
@@ -628,7 +629,8 @@ Using the best combination (**bold**), we evaluated the GBMs performance across 
 |-----------------------|--------------|--------------|--------------|
 | **Gradient Boosting** | 94,612.16    | 307.51       | 177.78       |  
 
-A partial dependence plot illustrates the relationship between a predictor variable and the target variable while holding other features constant. This visualization helps interpret the influence of individual predictors on the models predictions and provides insights into how a specific variable affects the target. The plot below highlights the relationship between `livingSpace` and `baseRent`.
+A partial dependence plot illustrates the relationship between a predictor variable and the target variable while holding other features constant. This visualization helps interpret the influence of individual predictors on the models predictions and provides insights into how a specific variable affects the target. [@molnar_guide_explainable_models_2024]  
+The plot below highlights the relationship between `livingSpace` and `baseRent`.
 
 ```{r pdpGbm, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Wordcloud of Titles", fig.align='center', fig.width=5, fig.height=4}
 img <- readPNG("./documents/images/pdp_gbm.png")
@@ -648,7 +650,7 @@ TODO
 TODO
 
 
-## Smaller Model
+## Model Size Reduction
 TODO
 - mention random forest
 - mention correlation
