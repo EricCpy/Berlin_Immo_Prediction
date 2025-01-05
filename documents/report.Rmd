@@ -27,6 +27,8 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 options(scipen = 1, digits = 2)
+
+
 source("./code/setup.R") # Knit Directory = project dir (document dir is default set manually to project dir)
 
 full_refit = F
@@ -773,12 +775,34 @@ When training the SVM model without outliers, the error results are as follows:
 | **SVM with outliers**                   | 114,781.2    | 338.71       | 169.77       |
 
 ## Model Size Reduction
-TODO
-- mention random forest
-- mention correlation
-- mention boxplots
-- mention that one could do PCA to see variables with high variance
-- mention that one could do MCA to see categorical variables with high variance
+When looking at the variable important of a random forest classifier, the variables
+contributing most to node purity are livingSpace, which has by far the most impact,
+followed by serviceCharge. Both of these variables have a strong positive correlation
+with baseRent. There are also variables that have no significant impact at all, like
+balcony, cellar, garden, telekomUploadSpeed, noParkSpaces, lift, hasKitchen, petsAllowed,
+numberOfFloors, heatingType, floor, lastRefurbish, pricetrend, pictureCount, typeOfFlat
+and firingTypes. For these variables, noParkSpaces, lastRefurbish and petsAllowed
+have the most missing values, making them even more unattractive to use. <br>
+Based on correlation we should include heatingCosts and noRooms, as they also
+strongly correlate with baseRent. <br>
+The variables priceTrend, telekomUplaodSpeed, yearConstructed, floor, numberofFloors and
+lastRefurbish correlate very weakly with baseRent, considering the variable importance in relation
+to node impurity, yearConstructed ranks pretty high, why it will be considered.
+When taking the different categories of condition into account, we could show that
+it has an impact on baseRent, which makes sense considering that apartments in good condition
+are more attractive for rent. <br>
+To see the potential impact of models, PCA could be done to see what variables contribute
+a lot of variance in the data. For categorical variables, the same could be done with
+MCA. <br>
+Based on the discussion on the different aspects of variable important, the models
+will be trained only on the following selected variables to evaluate the performance: <br>
+heatingType, yearConstructed, hasKitchen, livingSpace, condition, interiorQual,
+typeOfFlat, noRooms, thermalChar, heatingCosts and district.
+
+```{r variable_selection_small_model, echo=FALSE, message=FALSE, warning=FALSE}
+
+```
+
 
 
 # Model Evaluation
