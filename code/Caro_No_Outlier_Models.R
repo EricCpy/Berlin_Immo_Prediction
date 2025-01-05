@@ -52,12 +52,13 @@ mse <- mean((test_data_bool_as_factor$baseRent - predictions)^2)
 rmse <- sqrt(mse)
 mae <- mean(abs(test_data_bool_as_factor$baseRent - predictions))
 
+#saveRDS(model, here("data/gbm_model_baseRent_no_outliers.rds"))
+
 # svm
 model <- svm(baseRent ~ ., data = train_data_bool_as_factor, coef=5, kernel = "polynomial")
 
-O
 mse <- mean((test_data_bool_as_factor$baseRent - predictions)^2)
 rmse <- sqrt(mse)
 mae <- mean(abs(test_data_bool_as_factor$baseRent - predictions))
 
-saveRDS(model, here("data/svm_model_baseRent_no_outliers.rds"))
+#saveRDS(model, here("data/svm_model_baseRent_no_outliers.rds"))
