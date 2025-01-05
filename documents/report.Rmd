@@ -19,7 +19,7 @@ nocite:
 - "@gunay_understanding_parameters_svm_2021"
 - "@lejlot_svc_coef0_parameter_range_2013"
 - "@molnar_guide_explainable_models_2024"
-- "xgboost_tutorial_2022"
+- "@xgboost_tutorial_2022"
 editor_options: 
   chunk_output_type: inline
 ---
