@@ -784,6 +784,7 @@ SVM and Random Forest, on the other hand, are less sensitive to individual data 
 
 In summary, the degree of improvement in RMSE across different models when outliers are removed is likely related to the inherent characteristics of each model in handling outliers and noise. Models that rely more heavily on learning from the Variance, such as Gradient Boosting, show the greatest improvement when outliers are removed.
 
+- TODO plot predicted values of best model against real values
 
 ## Model Size Reduction (REFACTOR)
 When looking at the variable important of a random forest classifier, the variables
@@ -809,15 +810,6 @@ Based on the discussion on the different aspects of variable important, the mode
 will be trained only on the following selected variables to evaluate the performance: <br>
 heatingType, yearConstructed, hasKitchen, livingSpace, condition, interiorQual,
 typeOfFlat, noRooms, thermalChar, heatingCosts and district.
-
-
-# Model Evaluation (TODO)
-- plot predicted values of best model against real values
-- plot distribution of predicted and trues
-- include district evaluation 
-- write something like a small conclusion
-- mention that models could have performed different if we used less columns for all but we only done this for the best model
-
 
 # References
 
