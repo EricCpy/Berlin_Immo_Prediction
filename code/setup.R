@@ -16,6 +16,7 @@ library(randomForest)
 library(caret)
 library(png)
 library(xgboost)
+library(knitr)
 
 source("./code/helper_functions.R")
 source("./code/data_etl.R")

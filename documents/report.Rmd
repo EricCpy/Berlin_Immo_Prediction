@@ -28,12 +28,13 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 options(scipen = 1, digits = 2)
 
-
 source("./code/setup.R") # Knit Directory = project dir (document dir is default set manually to project dir)
 
 full_refit = F
 output_type = "gitbook" # "gitbook" or "pdf"
 ```
+<br>
+**Tip:** For the optimal experience view the report in HTML format.
 
 # Introduction
 
@@ -69,30 +70,35 @@ Historical rental listing data for Berlin is crucial for achieving the objective
 
 After filtering for Berlin listings, more than 10,000 entries remain. The next step is to remove irrelevant fields from the dataset, which will help with the development of machine learning models in subsequent stages. Identifying and removing these irrelevant fields requires a thorough understanding of the dataset. A brief explanation of each column can be found on Kaggle. Below is a list of the fields removed, along with the reasons for their exclusion:
 
-| Column Name                | Reason for Removal                                                                                   |
-|----------------------------|------------------------------------------------------------------------------------------------------|
-| regio1                     | Redundant, as it contains only "Berlin."                                                             |
-| geo_bln                    | Redundant, as it contains only "Berlin."                                                             |
-| geo_krs                    | Redundant, as it contains only "Berlin."                                                             |
-| regio2                     | Redundant, as it contains only "Berlin."                                                             |
-| street                     | Redundant information; contains the same data as `street_plain`, but of lower quality.               |
-| telekomTvOffer             | Irrelevant, as all listings can offer this service.                                                  |
-| telekomHybridUploadSpeed   | Unnecessary, with mostly missing (NA) values.                                                        |
-| scoutId                    | Unique ID, not useful for analysis.                                                                  |
-| yearConstructedRange       | Artificial column, not relevant to the analysis.                                                     |
-| streetPlain                | Would require significant cleaning or conversion into longitude and latitude.                        |
-| houseNumber                | Requires a corresponding street to provide meaningful context.                                       |
-| baseRentRange              | Artificial column, not needed for analysis.                                                          |
-| livingSpaceRange           | Artificial column, not needed for analysis.                                                          |
-| noRoomsRange               | Artificial column, not needed for analysis.                                                          |
-| electricityKwhPrice        | Deprecated since 2020; irrelevant as the dataset lacks earlier data.                                 |
-| electricityBasePrice       | Deprecated since 2020; irrelevant.                                                                   |
-| energyEfficiencyClass      | Deprecated since 2020; irrelevant.                                                                   |
-| date                       | Redundant, as it duplicates `date_full`.                                                             |
-| description                | Redundant, as it only repeats information already provided in other columns.                         |
-| facilities                 | Redundant, as it only repeats information already provided in other columns.                         |
-| totalRent                  | Artificial column, a sum of baseRent, heatingCosts, and serviceCharge; unnecessary for analysis.     |
-| newlyConst                 | Artificial column, constructionYear >= 2017 ? TRUE : FALSE                                           |
+```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit}
+data <- data.frame(
+  Column = c("regio1", "geo_bln", "geo_krs", "regio2", "street", "telekomTvOffer", 
+                  "telekomHybridUploadSpeed", "scoutId", "yearConstructedRange", "streetPlain", 
+                  "houseNumber", "baseRentRange", "livingSpaceRange", "noRoomsRange", 
+                  "electricityKwhPrice", "electricityBasePrice", "energyEfficiencyClass", 
+                  "date", "description", "facilities", "totalRent", "newlyConst"),
+  Reason_for_Removal = c("Redundant, as it contains only 'Berlin.'", "Redundant, as it contains only 'Berlin.'", 
+                         "Redundant, as it contains only 'Berlin.'", "Redundant, as it contains only 'Berlin.'", 
+                         "Redundant information; contains the same data as `street_plain`, but of lower quality.", 
+                         "Irrelevant, as all listings can offer this service.", 
+                         "Unnecessary, with mostly missing (NA) values.", "Unique ID, not useful for analysis.", 
+                         "Artificial column, not relevant to the analysis.", 
+                         "Would require significant cleaning or conversion into longitude and latitude.", 
+                         "Requires a corresponding street to provide meaningful context.", 
+                         "Artificial column, not needed for analysis.", "Artificial column, not needed for analysis.", 
+                         "Artificial column, not needed for analysis.", 
+                         "Deprecated since 2020; irrelevant as the dataset lacks earlier data.", 
+                         "Deprecated since 2020; irrelevant.", "Deprecated since 2020; irrelevant.", 
+                         "Redundant, as it duplicates `date_full`.", 
+                         "Redundant, as it only repeats information already provided in other columns.", 
+                         "Redundant, as it only repeats information already provided in other columns.", 
+                         "Artificial column, a sum of baseRent, heatingCosts, and serviceCharge; unnecessary for analysis.", 
+                         "Artificial column, constructionYear >= 2017 ? TRUE : FALSE")
+)
+
+kable(data, caption = "Columns and Reasons for Removal", align = "l", col.names = c("Column                            ", "Reason for Removal"))
+```
+
 
 <br>
 Upon removing the irrelevant fields from the Berlin dataset, the remaining fields include:
@@ -466,26 +472,27 @@ SVR assigns zero prediction error to points within the \( \epsilon \)-insensitiv
 
 
 # Model Implementation
-This chapter describes the implementation of the models trained on our dataset, outlining key considerations and decisions made to optimize our models. The following topics are covered: model training, hyperparameter optimization, managing outliers and reducing model size.
+This chapter describes the implementation of the models trained on our dataset, outlining key considerations and decisions made to optimize our models. The following topics are covered: model training, hyperparameter optimization and managing outliers.
 
 One challenge we faced was the diversity of geographic data inside the `geo_plz` variable, which includes 214 unique levels across 10,000 rows. This introduces the potential issue of encountering postal codes in the test data that were not present in the training data. To address this we removed the `geo_plz` variable by grouping data into broader districts and subdistricts within the `regio3` category. This also helps to capture meaningful geographic relationships while minimizing overfitting risks.
 
-The implementation of all basic models is included in `eric_model.R`. Hyperparameter optimization (HPO) is conducted exclusively on a single Gibbs-imputed dataset in `eric_hpo.R`. This approach was selected to save computational resources, as Gibbs iterations maintain consistent distributions and variables with the highest correlations in our dataset have fewer missing values.
+The implementation of all basic models is included in `eric_model.R`. Hyperparameter optimization (HPO) is performed exclusively on a single Gibbs-imputed dataset using 10-fold cross-validation in `eric_hpo.R`. This approach was selected to save computational resources, as Gibbs iterations maintain consistent distributions and variables with the highest correlations in our dataset have fewer missing values.
 
-The implementation of all basic models is contained in the `eric_model.R`. Hyperparameter optimization (HPO) is performed exclusively on one Gibbs imputed dataset. This decision was made to save computation power and because Gibbs iterations retain consistent distributions, which means that variance captured could stays the same.
+All models are then trained using the hyperparameters determined through HPO with an 80/20 train-test split on all of our imputed datasets to evaluate their performance. Additionally, outlier management is an aspect of our analysis, with experiments conducted both including and excluding outliers. Outlier free datasets are reserved for a final comparison. Finally, we will explore if it is possible to reduce the model size and evaluate how the models perform with fewer columns and potentially less noise. The following table summarizes the results of this chapter:
 
-All models are then trained using the hyperparameters found through HPO on all of our imputed datasets to evaluate its performance. Additionally, outlier management is an aspect of our analysis, with experiments conducted both including and excluding outliers. Outlier free datasets are reserved for a final comparison. Finally, we will explore if it is possible to reduce the model size and evaluate how the models perform with fewer columns and potentially less noise. The following table summarizes the results of this chapter:
+```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit}
+model_comparison <- data.frame(
+  Method = c("Regression Tree", "SVM", "Random Forest", "Gradient Boosting", "XGBoost"),
+  `Average MSE` = c(129591.7, 114781.2, 92827.36, 92214.98, 73160.73),
+  `Average RMSE` = c(359.91, 338.71, 304.65, 303.33, 270.44),
+  `Average MAE` = c(207.78, 169.77, 167.32, 170.39, 154.07)
+)
 
-| Method                    | Average MSE  | Average RMSE | Average MAE  |
-|---------------------------|--------------|--------------|--------------|
-| **Regression Tree**       | 129,591.7    | 359.91       | 207.78       |
-| **SVM**                   | 114,781.2    | 338.71       | 169.77       |
-| **Random Forest**         | 92,827.36    | 304.65       | 167.32       |
-| **Gradient Boosting**     | 92,214.98    | 303.3272     | 170.3922     |
-| **XGBoost**               | 73,160.73    | 270.4421     | 154.0709     |
+kable(model_comparison, caption = "Comparison of Model Performance", align = "l", col.names = c("Method", "Average MSE", "Average RMSE", "Average MAE"))
+```
 
 
-```{r createGibbsTrainTest, echo=TRUE, message=FALSE, warning=FALSE, cache=!full_refit}
+```{r createGibbsTrainTest, echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE}
 train_data1 <- train_data[[1]]
 test_data1 <- test_data[[1]]
 ```
@@ -496,16 +503,18 @@ test_data1 <- test_data[[1]]
 In this section, we focus on training a **regression tree** using the `rpart` package and visualizing the results. 
 To determine the optimal depth or number of splits for our tree, we use cross-validation. The `rpart` package simplifies this process by calculating the cross-validated error for each of the subtrees. These cross-validation results are stored in a complexity parameter table (`cptable`), which provides the cross-validation errors for the subtrees. This table helps us to assess the complexity needed when we prune our tree. Below, we display the first 10 rows of the `cptable` for our tree:
 
-```{r cpTable, echo=TRUE, message=FALSE, warning=FALSE, cache=!full_refit}
+```{r cpTable, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit}
 default_tree <- rpart(
   baseRent ~ .,
   data = train_data1,
   method = "anova"
 )
-print(head(default_tree$cptable, 10))
+cp_table <- default_tree$cptable
+kable(cp_table, caption = "Complexity Table for Tree", align = "l")
 ```
 
-From the `cptable`, we can use two approaches to prune the tree:  
+From the `cptable`, we can use two approaches to prune the tree:
+
 1. **Lowest Cross-Validation Error**: Prune the tree to the complexity parameter corresponding to the lowest cross-validated error (`xerror`).  
 2. **Standard Deviation Rule**: Use the complexity parameter with the simplest tree whose error is within one standard deviation of the minimum cross-validated error. This approach is recommended by the authors of the `rpart` package.
 
@@ -524,14 +533,19 @@ rpart.plot(pruned_tree)
 
 The pruning process helps to create a more interpretable tree while maintaining or even enhancing its predictive performance. Below, we compare the performance of the full tree and the two pruning techniques on the test data, averaged across all five imputed datasets. Note that the *full tree* does not necessarily imply only one node per leaf, other stopping parameters influence the structure. Having one terminal node per observation would be excessive and unnecessary.
 
-| Method                    | Average MSE  | Average RMSE | Average MAE  |
-|---------------------------|--------------|--------------|--------------|
-| **Full Tree**             | 130,515.9    | 361.22       | 204.53       |
-| **Best xError**           | 129,591.7    | 359.91       | 207.78       |
-| **Best (Authors' Method)**| 165,022.5    | 405.1        | 253.89       |
+```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit}
+model_comparison_tree <- data.frame(
+  Method = c("Full Tree", "Best xError", "Best (Authors' Method)"),
+  `Average MSE` = c(130515.9, 129591.7, 165022.5),
+  `Average RMSE` = c(361.22, 359.91, 405.1),
+  `Average MAE` = c(204.53, 207.78, 253.89)
+)
 
+kable(model_comparison_tree, caption = "Comparison of Tree Performance", align = "l", col.names = c("Method", "Average MSE", "Average RMSE", "Average MAE"))
+```
 
-From the table we observe the following:  
+From the table we observe the following:
+
 1. **Full Tree**: Surprisingly, the full tree performs well on the test dataset, achieving competitive results in MSE and RMSE and the best results for mean absolute error. This suggests a high degree of variance in the dataset.  
 2. **Best xError**: This pruning technique achieves significantly better results compared to the method recommended by the authors of the `rpart` package, as it has the lowest MSE and RMSE out of all methods.  
 3. **Authors Method**: While this approach prioritizes simplicity and generalization, it results in higher error values compared to the other methods. This means that this pruning method may not be the optimal choice for this dataset.
@@ -559,12 +573,18 @@ For tuning the SVM parameters and validating its performance, we performed cross
 - **Coef0**: (0, 1, **5**, 10)  
    The coef0 parameter is relevant only for *polynomial* and *sigmoid* kernels. It controls the impact of the higher-dimensional feature space on the decision boundary. [@lejlot_svc_coef0_parameter_range_2013]
 
-After d
 In this case the results of SVM fitting over all imputed datasets are as follows:
 
-| Method                    | Average MSE  | Average RMSE | Average MAE  |
-|---------------------------|--------------|--------------|--------------|
-| **SVM**                   | 114,781.2    | 338.71       | 169.77       |
+```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit}
+model_svm <- data.frame(
+  Method = c("SVM"),
+  `Average MSE` = c(114781.2),
+  `Average RMSE` = c(338.71),
+  `Average MAE` = c(169.77)
+)
+
+kable(model_svm, caption = "SVM Performance", align = "l", col.names = c("Method", "Average MSE", "Average RMSE", "Average MAE"))
+```
 
 When comparing SVMs to simple regression trees, we can see that SVMs performed slightly better. Decision trees are more interpretable, but also prone to overfitting, especially when there are many features or complex relationships in the data. SVMs tend to generalize better, which leads to lower error metrics.  
 While both models have their advantages, the SVMs performance suggests it is better suited for this particular dataset, likely due to its improved ability to handle outliers and avoid overfitting. 
@@ -600,9 +620,17 @@ To optimize the random forest model, we performed cross-validation on one of the
 
 The results of random forest fitting on all imputed datasets, excluding the `regio3` variable, are summarized below:  
 
-| Method                    | Average MSE  | Average RMSE | Average MAE  |
-|---------------------------|--------------|--------------|--------------|
-| **Random Forest**         | 92,827.36    | 304.65       | 167.32       |
+```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit}
+model_comparison_rf <- data.frame(
+  Method = c("Random Forest"),
+  `Average MSE` = c(92827.36),
+  `Average RMSE` = c(304.65),
+  `Average MAE` = c(167.32)
+)
+
+kable(model_comparison_rf, caption = "Random Forest Performance", align = "l", col.names = c("Method", "Average MSE", "Average RMSE", "Average MAE"))
+
+```
 
 To visualize the variable importance of our first model using imputed data, we generated a plot that illustrates the impact of each variable on the model based on the `incNodePurity`. A higher `incNodePurity` value indicates a greater influence of the variable on the random forest model.
 
@@ -638,9 +666,16 @@ To optimize the GBM model, we performed a grid search using cross-validation on 
 
 Using the best combination (**bold**), we evaluated the GBMs performance across all imputed datasets, summarized as follows:  
 
-| Method                | Average MSE  | Average RMSE | Average MAE  |
-|-----------------------|--------------|--------------|--------------|
-| **Gradient Boosting** | 92214.98     | 303.3272     | 170.3922     |  
+```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit}
+model_comparison_gbm <- data.frame(
+  Method = c("GBM"),
+  `Average MSE` = c(92214.98),
+  `Average RMSE` = c(303.33),
+  `Average MAE` = c(170.39)
+)
+
+kable(model_comparison_gbm, caption = "GBM Performance", align = "l", col.names = c("Method", "Average MSE", "Average RMSE", "Average MAE"))
+```
 
 A partial dependence plot illustrates the relationship between a predictor variable and the target variable while holding other features constant. This visualization helps interpret the influence of individual predictors on the models predictions and provides insights into how a specific variable affects the target. [@molnar_guide_explainable_models_2024]  
 The plot below highlights the relationship between `livingSpace` and `baseRent`.
@@ -688,9 +723,16 @@ To optimize the XGBoost model, we performed a *random grid search* over a range 
 
 Using the best combination of hyperparameters, we evaluated the performance of XGBoost across all imputed datasets:
 
-| Method                | Average MSE  | Average RMSE | Average MAE  |
-|-----------------------|--------------|--------------|--------------|
-| **XGBoost**           | 73160.73     | 270.4421     | 154.0709     |
+```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit}
+model_comparison_xgb <- data.frame(
+  Method = c("XGBoost"),
+  `Average MSE` = c(73160.73),
+  `Average RMSE` = c(270.44),
+  `Average MAE` = c(154.07)
+)
+
+kable(model_comparison_xgb, caption = "XGBoost Performance", align = "l", col.names = c("Method", "Average MSE", "Average RMSE", "Average MAE"))
+```
 
 We can observe that XGBoost outperforms GBMs and to better understand why, we examined the models variable importance.
 The variable importance analysis for the XGBoost model reveals slight differences compared to the GBM model. For example the `district` column holds more importance than the `regio3` column (subdistricts), suggesting that we can potentially remove `regio3` without significant loss of information.
@@ -700,24 +742,34 @@ img <- readPNG("./documents/images/xgb_variable_influence.png")
 grid::grid.raster(img)
 ```
 
-XGBoost delivered the best results out of all methods tested, even with the default parameters. This demonstrates XGBoosts the ability to capture the most variance in the data while avoiding overfitting and making it a state-of-the-art problem.
+XGBoost delivered the best results out of all methods tested, even with the default parameters. This demonstrates XGBoosts the ability to capture the most variance in the data while avoiding overfitting and XGBoosts state-of-the-art model status.
 
 
 
 ## Outlier Handling
 
-The dataset has a significant variance in prices, with a few high-priced apartments in the distribution (*long-tail*). To evaluate the robustness of our models against outliers, we propose the following tests:  
+The dataset has a significant variance in prices, with few high-priced apartments that create a *long-tail* distribution. To assess the robustness of our models against outliers, we will begin by examining the true vs. predicted values for our best performing model, which was XGBoost.
+
+```{r xgbTruePredicted, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="True vs Predicted Base Rent", fig.align='center', fig.width=6, fig.height=4}
+img <- readPNG("./documents/images/xgb_true_predicted.png")
+grid::grid.raster(img)
+```
+
+The plot reveals that the model performs well for most non-outlier base rents, with predictions closely aligned to the true values. However, there is noticeable underprediction for base rents above 2,600, while higher base rents tend to have wider variation in predictions. Despite this, the model demonstrates some robustness against outliers.  
+
+To further evaluate the robustness of the model, we propose the following tests:  
 
 1. **Training and Testing on Outlier-Free Data**:  
-   We will retrain the models on a dataset that excludes outliers and test their performance on outlier-free test data.  
+   Retrain the models on a dataset that excludes outliers and evaluate their performance on outlier-free test data.  
 
 2. **Testing Existing Models on Outlier-Free Data**:  
-   We will assess the performance of our previously trained models (which included outliers during training) on the outlier-free test data.  
+   Use the previously trained models (which included outliers during training) to assess their performance on outlier-free test data.  
 
 If the models trained with outliers perform as well as those trained without outliers, it would indicate that our models are robust and not significantly influenced by outliers. Vice versa if the performance of the outlier-free models is superior, it suggests that excluding outliers could improve predictions for common apartments.  
 
-**Why focus on more common apartments?**  
-There are several reasons:  
+One alternative approach we will not consider in this report is training the model on the log-transformed `baseRent`. While this method effectively scales down the impact of outliers, it introduces additional complexity that may not align with the objectives.  
+There are several reasons we think it might be benficial to get better predictions for more common apartments:
+
 - Outliers may represent corrupted data that do not occur in real-world scenarios.  
 - Most potential users of the model may not be wealthy and are likely more interested in predictions for mid-range apartments.  
 - Prioritizing accuracy for mid-range apartments aligns better with the needs of the target audience, ensuring more practical and relevant predictions.  
@@ -752,30 +804,29 @@ When calculating the upper bound, all flats with a price higher than `r toString
 
 Our initial hypothesis is that models that are better equipped to handle noise, such as random forests, will show smaller performance increases when trained with and without outliers, when the evaluation is done on outlier free test data. Models like Gradient Boosting, Regression Trees and XGBoost often benefit from the removal of outliers since their algorithms are sensitive to extreme values that can influence the structure of the decision boundaries or the boosting process. These models can more effectively generalize when the noise introduced by outliers is reduced.
 
-It is important to note that we did not optimize the hyperparameters for the models trained on the dataset without outliers. All models were evaluated on outlier-free data. The error metrics are presented in the table below:
+It is important to note that we did not optimize the hyperparameters for the models trained on the dataset without outliers. All models were evaluated on outlier free data. The error metrics are presented in the table below:
 
-| Method                    | Trained With Outliers | Average MSE | Average RMSE  | Average MAE |
-|---------------------------|-----------------------|-------------|---------------|-------------|
-| **Regression Tree**       | YES                   |63658        | 252           | 179         |
-| **Regression Tree**       | NO                    |52322        | 229           | 168         |
-| **SVM**                   | YES                   |43701        | 209           | 143         |
-| **SVM**                   | NO                    |38546        | 196           | 138         |
-| **Random Forest**         | YES                   |44653        | 211           | 146         |
-| **Random Forest**         | NO                    |39227        | 198           | 139         |
-| **Gradient Boosting**     | YES                   |46736        | 216           | 154         |
-| **Gradient Boosting**     | NO                    |34438        | 186           | 135         |
-| **XGBoost**               | YES                   |39065        | 198           | 134         |
-| **XGBoost**               | NO                    |32187        | 179           | 126         |
+```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit}
+model_comparison_outlier <- data.frame(
+  Method = c("Regression Tree", "Regression Tree", "SVM", "SVM", "Random Forest", 
+             "Random Forest", "Gradient Boosting", "Gradient Boosting", "XGBoost", "XGBoost"),
+  `Trained With Outliers` = c("YES", "NO", "YES", "NO", "YES", "NO", "YES", "NO", "YES", "NO"),
+  `Average MSE` = c(63658, 52322, 43701, 38546, 44653, 39227, 46736, 34438, 39065, 32187),
+  `Average RMSE` = c(252, 229, 209, 196, 211, 198, 216, 186, 198, 179),
+  `Average MAE` = c(179, 168, 143, 138, 146, 139, 154, 135, 134, 126)
+)
+
+kable(model_comparison_outlier, caption = "Comparison of Model Performance Metrics with/without Outliers", align = "l" , col.names = c("Method", "Trained With Outliers", "Average MSE", "Average RMSE", "Average MAE"))
+```
 
 Here we can see that all methods significantly improved on the outlier-free data when we trained them without outliers. 
+The order of the models, based on their improvement in RMSE (italic) after removing outliers, is as follows:
 
-The order of the models, based on their improvement in RMSE (bold) after removing outliers, is as follows:
-
-1. Gradient Boosting **30**
-2. Regression Tree **23**
-3. XGBoost **19**
-4. SVM **13**
-5. Random Forest **13**
+1. Gradient Boosting *30*
+2. Regression Tree *23*
+3. XGBoost *19*
+4. SVM *13*
+5. Random Forest *13*
 
 This order could be due to the specific nature of each algorithms sensitivity to outliers and our selected parameters. For example, Gradient Boosting iteratively builds weak learners and is particularly impacted by outliers because each subsequent tree tries to correct for errors from previous ones. If the initial trees are influenced by outliers, it can lead to a cascading effect of poor learning.  
 Regression Trees, while also sensitive to outliers, tend to generalize better than weak learners in the presence of outliers, but extreme outliers can still influence splits.  
@@ -784,32 +835,6 @@ SVM and Random Forest, on the other hand, are less sensitive to individual data 
 
 In summary, the degree of improvement in RMSE across different models when outliers are removed is likely related to the inherent characteristics of each model in handling outliers and noise. Models that rely more heavily on learning from the Variance, such as Gradient Boosting, show the greatest improvement when outliers are removed.
 
-- TODO plot predicted values of best model against real values
-
-## Model Size Reduction (REFACTOR)
-When looking at the variable important of a random forest classifier, the variables
-contributing most to node purity are livingSpace, which has by far the most impact,
-followed by serviceCharge. Both of these variables have a strong positive correlation
-with baseRent. There are also variables that have no significant impact at all, like
-balcony, cellar, garden, telekomUploadSpeed, noParkSpaces, lift, hasKitchen, petsAllowed,
-numberOfFloors, heatingType, floor, lastRefurbish, pricetrend, pictureCount, typeOfFlat
-and firingTypes. For these variables, noParkSpaces, lastRefurbish and petsAllowed
-have the most missing values, making them even more unattractive to use. <br>
-Based on correlation we should include heatingCosts and noRooms, as they also
-strongly correlate with baseRent. <br>
-The variables priceTrend, telekomUplaodSpeed, yearConstructed, floor, numberofFloors and
-lastRefurbish correlate very weakly with baseRent, considering the variable importance in relation
-to node impurity, yearConstructed ranks pretty high, why it will be considered.
-When taking the different categories of condition into account, we could show that
-it has an impact on baseRent, which makes sense considering that apartments in good condition
-are more attractive for rent. <br>
-To see the potential impact of models, PCA could be done to see what variables contribute
-a lot of variance in the data. For categorical variables, the same could be done with
-MCA. <br>
-Based on the discussion on the different aspects of variable important, the models
-will be trained only on the following selected variables to evaluate the performance: <br>
-heatingType, yearConstructed, hasKitchen, livingSpace, condition, interiorQual,
-typeOfFlat, noRooms, thermalChar, heatingCosts and district.
 
 # References
 

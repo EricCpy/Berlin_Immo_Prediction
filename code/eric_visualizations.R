@@ -173,3 +173,29 @@ ggplot(train_data1, aes(x = livingSpace, y = baseRent)) +
        x = "Year Constructed",
        y = "Base Rent") +
   theme_minimal()
+
+# ---- XGB TRUE VS PREDICTED ----
+test_data1 <- test_data[[1]]
+
+dummies <- dummyVars(baseRent ~ ., data = test_data1)
+test_encoded <- data.frame(predict(dummies, newdata = test_data1))
+test_matrix <- xgb.DMatrix(data = as.matrix(test_encoded), label = test_data1$baseRent)
+
+xgb_model_best <- readRDS("data/models/models_xgb.rds")[1]
+
+test_pred <- predict(xgb_model_best, test_matrix)[[1]]
+
+results <- data.frame(
+  True = test_data1$baseRent,
+  Predicted = test_pred
+)
+
+# Create the ggplot
+ggplot(results, aes(x = True, y = Predicted)) +
+  geom_point(alpha = 0.6, color = "blue") +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+  theme_minimal() +
+  labs(
+    x = "True Values (baseRent)",
+    y = "Predicted Values (baseRent)"
+  )
