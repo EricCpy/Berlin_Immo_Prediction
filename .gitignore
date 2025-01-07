@@ -60,8 +60,6 @@ documents/libs
 data/immo_data.csv 
 
 # Save models local
-data/models/models_randomforest.rds
-data/models/models_gbm.rds
-data/models/models_xgb.rds
 data/models/*
 data/models_no_outliers/*
+data/ignore

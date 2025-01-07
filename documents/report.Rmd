@@ -40,7 +40,7 @@ output_type = "gitbook" # "gitbook" or "pdf"
 
 Understanding rent prices in Berlin is essential for anyone looking to rent an apartment in the city, given its dynamic housing market and the growing demand for affordable living spaces. To address this, our project focuses on analyzing historical rental data from Berlin in 2020, aiming to uncover insights and develop predictive models that estimate rental prices based on key property attributes and evaluate them.
 
-The following dataset, available at [Kaggle](https://www.kaggle.com/datasets/corrieaar/apartment-rental-offers-in-germany/data), contains information about rental properties listed on ImmoScout24. The data was scraped from ImmoScout24 between February and October 2020 and includes listings from all German federal states. For our project, we will focus exclusively on Berlin and train a model to predict either the `totalRent` or the `basePrice`.
+The following dataset, available at [Kaggle](https://www.kaggle.com/datasets/corrieaar/apartment-rental-offers-in-germany/data), contains information about rental properties listed on ImmoScout24. The data was scraped from ImmoScout24 between February and October 2020 and includes listings from all German federal states. For our project, we will focus exclusively on Berlin and train a model to predict the `basePrice`.
 
 ## Data Description
 
