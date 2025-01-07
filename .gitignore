@@ -62,4 +62,3 @@ data/immo_data.csv
 # Save models local
 data/models/*
 data/models_no_outliers/*
-data/ignore
