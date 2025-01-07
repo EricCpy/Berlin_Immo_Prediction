@@ -652,17 +652,20 @@ Unlike random forests, gradient boosting emphasizes optimization by minimizing a
 
 To optimize the GBM model, we performed a grid search using cross-validation on one of the imputed datasets. The parameters explored and their implications are as follows:  
 
-- **Number of Trees** (100, 200, 300, **500**)  
+- **Number of Trees**: (100, 200, 300, **500**)  
   The number of boosting iterations. More trees typically improve performance up to a point but increase computational cost and the risk of overfitting.  
 
-- **Tree Depth** (1, 3, **6**, 9)  
+- **Tree Depth**: (1, 3, **6**, 9)  
   The maximum depth of each tree. A smaller depth helps prevent overfitting and ensures the model captures simpler interactions, while deeper trees can model more complex relationships.  
 
-- **Shrinkage** (**0.05**, 0.1)  
+- **Shrinkage**: (**0.05**, 0.1)  
   Also known as the learning rate, this parameter controls how much each tree contributes to the final model. Smaller values slow down the learning process and can lead to more robust models.  
 
-- **Minimum Observations per Node** (**10**, 20)  
+- **Minimum Observations per Node**: (**10**, 20)  
   The minimum number of observations in terminal nodes. Higher values result in simpler trees and prevent overfitting by reducing model complexity.
+  
+- **Distribution**: (**gaussian**)  
+  This specifies the loss function optimized by the GBM. When set to `gaussian`, the model optimizes the MSE by assuming the target variable follows a gaussian distribution.
 
 Using the best combination (**bold**), we evaluated the GBMs performance across all imputed datasets, summarized as follows:  
 
@@ -706,20 +709,23 @@ Before training the model, it is essential to preprocess the categorical variabl
 
 To optimize the XGBoost model, we performed a *random grid search* over a range of hyperparameters. Given the computational cost of a full grid search, we implemented a random sampling strategy. The parameters explored are as follows:
 
-- **eta** (0.01, 0.05, **0.1**, 0.3, 0.5)  
-  The learning rate, which controls the contribution of each tree. A smaller eta can lead to better generalization but requires more trees to achieve convergence.
+- **Learning Rate (eta)**:: (0.01, 0.05, **0.1**, 0.3, 0.5)  
+  The learning rate controls the contribution of each tree. A smaller eta can lead to better generalization but requires more trees to achieve convergence.
 
-- **max_depth** (1, 3, **6**, 9)  
+- **Tree Depth**: (1, 3, **6**, 9)  
   The maximum depth of each tree. This parameter controls the complexity of the individual trees, with deeper trees modeling more complex relationships.
 
-- **min_child_weight** (1, **2**, 5, 10)  
+- **Min Child Weight**: (1, **2**, 5, 10)  
   The minimum sum of instance weight (hessian) in a child. It helps control overfitting by ensuring that trees grow only when a sufficient number of data points are present in a split.
 
-- **subsample** (0.6, **0.8**, 1.0)  
+- **Data Sample**: (0.6, **0.8**, 1.0)  
   The proportion of rows used for training each tree. Lower values help reduce overfitting by introducing randomness, but too low may hurt performance.
 
-- **colsample_bytree** (**0.6**, 0.8, 1.0)  
+- **Column Sample**: (**0.6**, 0.8, 1.0)  
   The proportion of features used for training each tree. It helps prevent overfitting by limiting the model’s reliance on any particular feature.
+
+- **Objective**: (**reg:squarederror**)  
+  This specifies the loss function optimized by the model. When set to `reg:squarederror`, XGBoost minimizes the MSE.
 
 Using the best combination of hyperparameters, we evaluated the performance of XGBoost across all imputed datasets:
 
