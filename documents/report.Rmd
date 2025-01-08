@@ -52,13 +52,13 @@ The data provided in the Kaggle dataset consists of approximately 268,000 rental
 
 ## Objectives
 
-- **Data Understanding and Cleaning**:\
+- **Data understanding and cleaning**:\
   Before training a model, it is essential to thoroughly understand and clean the data. To achieve this, we will provide a concise visual overview of the dataset to highlight its key characteristics and identify potential issues.
 
-- **Predict Missing Values**:\
+- **Predict missing values**:\
   Because many columns in our data contain missing values, one of our goals is to impute these values and use the resulting data instead of the raw data.
 
-- **Model Selection and Comparison**:\
+- **Model selection and comparison**:\
   We aim to train a series of tree-based models on the dataset to predict the `baseRent` of an apartment, starting from simple decision trees that can provide explainable predictions and gradually progressing to more complex models such as Random Forests. Additionally, we will compare the performance of these tree-based methods with Support Vector Machine (SVM) regression to determine which approach yields the best results.
 
 
@@ -147,7 +147,7 @@ To understand the contents of the columns in our dataset and how they interact, 
 
 ### District-Level Apartment Overview and Model Considerations
 
-As seen in the data overview chapter, our dataset does not include the districts directly but only the postal codes (`geo_plz`). To derive the districts, we join our dataset with a reference dataset that maps Berlin's postal codes to districts. It is important to note that some postal codes belong to multiple districts. For simplicity, we associate each postal code with only one district. This simplification introduces a bias towards districts which appear earlier in our data, The following figure displays the frequency of each district represented in our dataset.
+As seen in the data overview chapter, our dataset does not include the districts directly but only the postal codes (`geo_plz`). To derive the districts, we join our dataset with a reference dataset that maps Berlin's postal codes to districts. It is important to note that some postal codes belong to multiple districts. For simplicity, we associate each postal code with only one district. This simplification introduces a bias towards districts which appear earlier in our data. The following figure displays the frequency of each district represented in our dataset.
 
 ```{r dataAnalysisDistrictCount, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.align='center', fig.cap= "Apartment Count by District in Berlin", fig.width=8, fig.height=4.5}
 districts_count_map <- ggplot() +
@@ -172,7 +172,7 @@ districts_count_barchart <- ggplot(berlin_data_district_statistics,
 grid.arrange(districts_count_map, districts_count_barchart, ncol=2, widths = c(1.5, 2))
 ```
 
-We observe that districts in central and eastern parts of Berlin are more frequently represented in the dataset compared to those in the southern or peripheral areas. Based on this we will evaluate later whether our model is bias towards districts that appear more frequently.
+We observe that districts in central and eastern parts of Berlin are more frequently represented in the dataset compared to those in the southern or peripheral areas.
 
 Furthermore, we analyzed the median prices across different districts. Our initial assumption was that districts closer to the city center have a higher median price compared to those in the outskirts. This assumption is based on the knowledge  that central areas typically offer superior infrastructure and greater access to amenities and activity hubs.
 
@@ -203,7 +203,7 @@ districts_rent_boxplot <- ggplot(berlin_data_cleaned_log, aes(x = reorder(distri
 grid.arrange(districts_median_rent_map, districts_rent_boxplot, ncol=2, widths = c(1.5, 2))
 ```
 
-Our initial assumption is confirmed: districts closer to the city center generally have higher rental prices, with Mitte standing out with several significant outliers. These outliers could pose challenges for our model if it lacks the robustness to accommodate them. Interestingly, when comparing this plot with the earlier analysis of apartment counts per district, the correlation between rental prices and the number of apartments appears weak. For example, Treptow-Köpenick, despite having a high number of apartments, shows relatively low rental prices.
+Our initial assumption is confirmed: districts closer to the city center generally have higher rental prices, with *Mitte* standing out with several significant outliers. These outliers could pose challenges for our model if it lacks the robustness to accommodate them. Interestingly, when comparing this plot with the earlier analysis of apartment counts per district, the correlation between rental prices and the number of apartments appears weak. For example, Treptow-Köpenick, despite having a high number of apartments, shows relatively low rental prices.
 
 
 ### Analysis of Rental Characteristics
@@ -244,7 +244,7 @@ ggplot(berlin_data_room_no_outliers, aes(x = factor(noRoomsRounded), y = livingS
 The filtered boxplot confirms this hypothesis. Even for a room count like 8, which only has 16 occurrences, the trend remains consistent. Larger apartments have larger living spaces, which aligns with our expectations.  
 A noteworthy observation is the prevalence of outliers in apartments with up to 5 rooms, especially for those with 3 and 4 rooms. These outliers are highly dispersed, potentially indicating that some of these entries might represent office spaces rather than standard apartments.
 
-Another important aspect of our dataset is the condition of the apartments. This feature provides qualitative information about the state of the properties, with categories like *mint_condition*, *refurbished*, and *renovated*. However, the definitions of these categories are not immediately clear, particularly the distinction between "mint_condition" and the other classifications.  
+Another important aspect of our dataset is the condition of the apartments. This feature provides qualitative information about the state of the properties, with categories like *mint_condition*, *refurbished*, and *renovated*. However, the definitions of these categories are not immediately clear, particularly the distinction between *mint_condition* and the other classifications.  
 To better understand these categories, we compare the condition of the apartments to their rent values. This comparison allows us to infer potential meanings or differences between the conditions.
 
 ```{r dataAnalysisConditions, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.align='center', fig.cap= "Base Rent by Conditions", fig.width=6, fig.height=4}
@@ -278,20 +278,20 @@ corrplot::corrplot(cor_matrix, method = "circle", type = "lower",
 From the correlation analysis, we observed several expected relationships:
 
 - Apartments with a high `baseRent` tend to have:
-  - Higher `serviceCharges`, `heatingCosts` (additional rental costs)
-  - Larger `livingSpace`, more rooms (`noRooms`)
+  - Higher additional rental costs: `serviceCharges`, `heatingCosts`
+  - Are larger: `livingSpace`, `noRooms`
 
-These findings align with our expectations, as more expensive apartments generally offer more space and additional services.
+These findings align with our expectations, that more expensive apartments generally offer more space and additional services.
 
-One initially confusing correlation was between `thermalChar` and `yearConstructed`. After further research, we found that `thermalChar` represents the apartments energy efficiency level, which is often linked to the buildings construction year. Newer buildings tend to be more energy-efficient due to modern construction standards and regulations.  
-Interestingly, this energy efficiency only shows a weak negative correlation with `heatingCosts`. Contrary to our inital expectations, more energy-efficient apartments appear to incur slightly higher heating costs. One possible explanation is the cost disparity between energy sources, in 2020 and even today, dirtier energy sources are often more affordable than renewable or sustainable alternatives.
+One initially confusing correlation was between `thermalChar` and `yearConstructed`. After further research, we found that `thermalChar` represents the apartments energy efficiency level, which is often linked to the buildings construction year. Newer buildings tend to be more energy efficient due to modern construction standards and regulations.  
+Interestingly, this energy efficiency only shows a weak negative correlation with `heatingCosts`. Contrary to our initial expectations, energy efficient apartments appear to incur slightly higher heating costs. One possible explanation is the cost disparity between energy sources, in 2020 and even today, dirtier energy sources are often more affordable than renewable or sustainable alternatives.
 
 
 ## Imputation
 
 Missing values in the data can significantly impact model performance, especially for Support Vector Machines (SVMs). While tree models such as those in `rpart` can handle missing values, SVMs from the `e1071` package cannot. SVMs simply exclude rows with missing values, which can lead to a scenario where the model is trained on as few as 10 observations.
 
-In our initial [data overview](#data-preparation) we identified the number of missing values in each column. To improve our understanding, we will visualize the top 10 columns with the highest percentage of missing values. These columns are also potential candidates for exclusion if we decide to reduce our model size. The following plot displays the absolute number of missing values out of a total of 10,304 entries.
+In our initial [data overview](#data-preparation) we identified the number of missing values in each column. To improve our understanding, we will visualize the top 10 columns with the highest percentage of missing values. The following plot displays the absolute number of missing values out of a total of 10,304 entries.
 
 ```{r dataAnalysisMissingValues, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit, fig.align='center', fig.cap= "Top 10 Columns with Most Missing Values", fig.width=6, fig.height=4}
 top_na_counts <- berlin_data_cleaned %>%
@@ -317,12 +317,12 @@ The imputation process using the *MICE* algorithm will generate five different d
 
 # Model Overview
 
-The following chapter begins with an overview of the machine learning algorithms we plan to use for our models. The content in this section is primarily based on our lecture slides, with citations provided for any external sources. Subsequently, we will train various models and evaluate them.
+The following chapter begins with an overview of the machine learning algorithms we plan to use for our models. The content in this section is primarily based on the lecture slides, with citations provided for any external sources.
 
 ## Regression Trees
 
 Tree models are supervised learning algorithms used for both regression and classification. They work by splitting the dataset into smaller subsets based on decision rules derived from the features and forming a tree structure. Each split improves the prediction accuracy of the model on the training data. The process continues until a stopping criterion, such as minimum number of observations in a node or maximum tree depth, is met.
-The tree’s leaf nodes represent the final predictions. For regression trees, this prediction is typically the average of the target variable within that leaf.  
+The trees leaf nodes represent the final predictions. For regression trees, this prediction is typically the average of the target variable within that leaf.  
 Regression trees are particularly useful for predicting continuous values as they can easily capture non-linear relationships. In our case, we aim to predict `baseRent` using a regression tree model.
 
 The following procedure shows how regression trees work:
@@ -383,7 +383,7 @@ Bootstrapping is a statistical technique that involves sampling with replacement
 
 Bagging is an ensemble learning technique that enhances accuracy and reduces variance by combining the predictions of multiple models. It involves training several instances of the same machine learning algorithm on different subsets of the data and then aggregating their predictions to form a final output. For regression tasks, this typically involves averaging the predictions. For classification tasks, the class with the majority vote is selected.
 
-Bagging reduces model variance by averaging out individual errors, which leads to more robust and reliable predictions. This technique is especially useful when using base models that are prone to high variance, such as decision trees. An ensemble of decision trees is commonly referred to as a *forest*.
+Bagging reduces model variance by averaging out individual errors, which leads to more robust and reliable predictions. This technique is especially useful when using models that are prone to high variance, such as decision trees. An ensemble of decision trees is commonly referred to as a *forest*.
 
 
 ### Random Forests
@@ -396,10 +396,10 @@ Bagging reduces model variance by averaging out individual errors, which leads t
 Boosting is an ensemble learning technique in machine learning that aims to improve the performance of weak models, such as a small tree (called *stump*) by combining their predictions to create a strong predictive model. The core idea is to iteratively train a series of models, where each new model focuses on correcting the mistakes made by the previous ones.
 
 The process begins with a simple model, like a stump, which makes predictions on the training data. The instances that were misclassified or had large errors are then given higher weights, so that subsequent models pay more attention to correcting these errors.  
-In the next iteration, a new model is trained on the weighted data, where the misclassified have higher weights. After training, it is added to the ensemble and its predictions are combined with those of the previous models. The respect to errors the weights are updated again. This process repeats for several iterations, with each new model gradually improving the overall predictions.  
+In the next iteration, a new model is trained on the weighted data, where the previous errors have higher weights. After training, it is added to the ensemble and its predictions are combined with those of the previous models. With respect to errors the weights are updated again. This process repeats for several iterations, with each new model gradually improving the overall predictions.  
 The final prediction is made by aggregating the predictions of all models. In algorithms like AdaBoost, this is done by weighted voting, where better performing models have more influence on the result.
 
-Boosting helps to reduce bias and variance. Initially, a simple model may have high bias and low variance, but as boosting progresses, the bias decreases, which improves the accuracy of our predictions. However, the increased flexibility and strong focus on errors can also lead to higher variance, making the model more sensitive to noise. To prevent overfitting regularization techniques and early stopping are often used.
+Boosting helps to reduce bias and variance. Initially, a simple model may have high bias and low variance, but as boosting progresses the bias decreases, which improves the accuracy of our predictions. However, the increased flexibility and strong focus on errors can also lead to higher variance, making the model more sensitive to noise. To prevent overfitting regularization techniques and early stopping are often used.
 
 We want to test the following boosting algorithms on our dataset:
 
@@ -420,7 +420,7 @@ In classification SVMs aim to identify a hyperplane \( f(x) \) that satisfies:
 \]
 where the hyperplane separates the data into distinct classes while maximizing a margin, which is the distance between the hyperplane and the closest data points from each class, known as *support vectors*.  
 
-However, real world datasets often contain overlapping classes, making perfect separation impossible. To address this SVMs use a *soft margin* that allows some misclassifications. The trade off between margin width and classification errors is controlled by the penalty parameter \( C \). The optimization problem for a soft margin SVM is:  
+However, real world datasets often contain overlapping classes, making perfect separation impossible. To address this SVMs use a *soft margin* that allows some misclassifications. The trade-off between margin width and classification errors is controlled by the penalty parameter \( C \). The optimization problem for a soft margin SVM is:  
 \[
 \text{maximize } M, \quad \text{subject to } y_i f(x_i) \geq M(1 - \xi_i), \quad \xi_i \geq 0, \quad \sum_{i=1}^n \xi_i \leq C,
 \]
@@ -441,8 +441,8 @@ The *kernel trick* addresses this challenge by avoiding explicit computation of 
 \[
 f(x) = \beta_0 + \sum_{i \in S} \alpha_i K(x, x_i),
 \]
-where \( S \) represents the set of support vectors that define the hyperplane, enhancing computational efficiency by focusing only on these critical points. The values \( \alpha_i \) are the Lagrange multipliers corresponding to each support vector \( x_i \). These multipliers are determined during the training process and reflect the importance of each support vector in defining the optimal hyperplane.  
-By leveraging the kernel trick, SVMs maintain computational efficiency while gaining the flexibility to tackle complex, non-linear problems.  
+where \( S \) represents the set of support vectors that define the hyperplane, enhancing computational efficiency by focusing only on these critical points. The values \( \alpha_i \) are the *Lagrange multipliers* corresponding to each support vector \( x_i \). These multipliers are determined during the training process and reflect the importance of each support vector in defining the optimal hyperplane.  
+By leveraging the kernel trick, SVMs maintain computational efficiency while gaining the flexibility to tackle complex non-linear problems.  
 
 
 ### Regression with Support Vector Machines [@rasifaghihi_support_vector_regressor_2023]
@@ -451,8 +451,9 @@ Support vector regression (SVR) is an extension of SVMs for regression tasks. Th
 
 A distinctive feature of SVR is the introduction of an \( \epsilon \)-insensitive tube around the regression hyperplane. This tube defines a tolerance margin within which deviations between predicted and actual target values are not penalized. This creates a balance between model complexity and its ability to generalize effectively.  
 
-For a linear function \( f(x) = wx + b \), this means to minimizing \( w \), which makes it less sensitive to small variations in the input data.  
-The SVR problem is formulated as a convex optimization task with the following objectives:  
+For a linear function \( f(x) = wx + b \), this means to minimize \( w \), which makes it less sensitive to small variations in the input data.  
+The SVR problem is formulated as a convex optimization task with the following objectives:
+
 1. Ensure that the deviations between predictions \( f(x) \) and actual target values \( y \) remain within \( \epsilon \) for all training data points. 
 2. Minimize the complexity of the function \( f(x) \) by keeping \( w \) small.  
 
@@ -474,11 +475,11 @@ SVR assigns zero prediction error to points within the \( \epsilon \)-insensitiv
 # Model Implementation
 This chapter describes the implementation of the models trained on our dataset, outlining key considerations and decisions made to optimize our models. The following topics are covered: model training, hyperparameter optimization and managing outliers.
 
-One challenge we faced was the diversity of geographic data inside the `geo_plz` variable, which includes 214 unique levels across 10,000 rows. This introduces the potential issue of encountering postal codes in the test data that were not present in the training data. To address this we removed the `geo_plz` variable by grouping data into broader districts and subdistricts within the `regio3` category. This also helps to capture meaningful geographic relationships while minimizing overfitting risks.
+One challenge we faced was the diversity of geographic data inside the `geo_plz` variable, which includes 214 unique levels across 10,000 rows. This introduces the potential issue of encountering postal codes in the test data that were not present in the training data. To address this we removed the `geo_plz` variable by grouping data into broader districts and subdistricts. This also helps to capture meaningful geographic relationships while minimizing overfitting risks.
 
-The implementation of all basic models is included in `eric_model.R`. Hyperparameter optimization (HPO) is performed exclusively on a single Gibbs-imputed dataset using 10-fold cross-validation in `eric_hpo.R`. This approach was selected to save computational resources, as Gibbs iterations maintain consistent distributions and variables with the highest correlations in our dataset have fewer missing values.
+The implementation of all basic models is included in `eric_model.R`. Hyperparameter optimization (HPO) is performed exclusively on a single imputed dataset using 10-fold cross-validation in `eric_hpo.R`. This approach was selected to save computational resources, as *Gibbs* iterations maintain consistent distributions and variables with the highest correlations in our dataset have fewer missing values.
 
-All models are then trained using the hyperparameters determined through HPO with an 80/20 train-test split on all of our imputed datasets to evaluate their performance. Additionally, outlier management is an aspect of our analysis, with experiments conducted both including and excluding outliers. Outlier free datasets are reserved for a final comparison. Finally, we will explore if it is possible to reduce the model size and evaluate how the models perform with fewer columns and potentially less noise. The following table summarizes the results of this chapter:
+All models are then trained using the hyperparameters determined through HPO with an 80/20 train-test split on all of our imputed datasets to evaluate their performance. Additionally, outlier management is an aspect of our analysis, with experiments conducted both including and excluding outliers. Outlier-free datasets are reserved for a final comparison. The following table summarizes the results of this chapter:
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit}
 model_comparison <- data.frame(
@@ -500,7 +501,7 @@ test_data1 <- test_data[[1]]
 
 ## Regression Trees
 
-In this section, we focus on training a **regression tree** using the `rpart` package and visualizing the results. 
+In this section, we focus on training a **regression tree** using the `rpart` package.  
 To determine the optimal depth or number of splits for our tree, we use cross-validation. The `rpart` package simplifies this process by calculating the cross-validated error for each of the subtrees. These cross-validation results are stored in a complexity parameter table (`cptable`), which provides the cross-validation errors for the subtrees. This table helps us to assess the complexity needed when we prune our tree. Below, we display the first 10 rows of the `cptable` for our tree:
 
 ```{r cpTable, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit}
@@ -605,7 +606,7 @@ ggplot(train_data1, aes(x = livingSpace, y = baseRent)) +
 
 ## Random Forest
 In this section, we focus on training a **random forest** using the `randomForest` package.
-Random forests in R cannot natively handle variables with more than 53 categorical features. This restriction posed a challenge in our dataset, as the regio3 variable contains more than 53 unique categories. Consequently, we excluded this variable from the random forest training process. While this exclusion makes a direct comparison with other models somewhat unfair, we believe that random forests' ability to reduce noise and capture complex interactions still allows them to outperform single decision trees and SVMs in general.
+Random forests in R cannot natively handle variables with more than 53 categorical features. This restriction posed a challenge in our dataset, as the `regio3` variable contains more than 53 unique categories. Consequently, we excluded this variable from the random forest training process. While this exclusion makes a direct comparison with other models somewhat unfair, we believe that random forests ability to reduce noise and capture complex interactions still allows them to outperform single decision trees and SVMs in general.
 
 To optimize the random forest model, we performed cross-validation on one of the imputed datasets using the following parameters, where the best parameter combination is indicated in bold.  
 
@@ -639,8 +640,7 @@ img <- readPNG("./documents/images/randomForestVarImportance.png")
 grid::grid.raster(img)
 ```
 
-We can observe that variables with high correlations exert the most influence on the random forest. Based on these findings, we plan to reduce the models complexity in a later chapter and explore whether a smaller model, trained on less noisy data, could outperform models trained on the full dataset.
-
+We can observe that variables with high correlations have the most influence on the random forest.  
 Random forests demonstrated superior performance in terms of error metrics compared to both SVMs and single decision trees. The ensemble approach reduced the overall noise in the data and captured complex interactions among variables more effectively. Although the exclusion of `regio3` may have slightly impacted its performance.  
 
 
@@ -665,7 +665,7 @@ To optimize the GBM model, we performed a grid search using cross-validation on 
   The minimum number of observations in terminal nodes. Higher values result in simpler trees and prevent overfitting by reducing model complexity.
   
 - **Distribution**: (**gaussian**)  
-  This specifies the loss function optimized by the GBM. When set to `gaussian`, the model optimizes the MSE by assuming the target variable follows a gaussian distribution.
+  The loss function optimized by the GBM. When set to `gaussian`, the model optimizes the MSE by assuming the target variable follows a gaussian distribution.
 
 Using the best combination (**bold**), we evaluated the GBMs performance across all imputed datasets, summarized as follows:  
 
@@ -705,12 +705,12 @@ Gradient boosting only outperformed single decision trees in all error metrics. 
 In this section, we focus on training an **XGBoost** model using the `xgboost` package in R. [@xgboost_tutorial_2022] 
 XGBoost is an optimized implementation of gradient boosting that often leads to better and faster results.
 
-Before training the model, it is essential to preprocess the categorical variables. XGBoost in R requires the input data to be in a numeric matrix form, so we need to *one-hot encode* or *label encode* the categorical variables. In our dataset none of the categorical variables have an inherent order, meaning they are nominal. Because of that we used **one-hot encoding** instead than *label encoding* to avoid introducing any unintended ordinal relationships.
+Before training the model, it is essential to preprocess the categorical variables. XGBoost in R requires the input data to be in a numeric matrix form, so we need to *one-hot encode* or *label encode* the categorical variables. In our dataset none of the categorical variables have an inherent order, meaning they are nominal. Because of that we used **one-hot encoding** instead of *label encoding* to avoid introducing any unintended ordinal relationships.
 
-To optimize the XGBoost model, we performed a *random grid search* over a range of hyperparameters. Given the computational cost of a full grid search, we implemented a random sampling strategy. The parameters explored are as follows:
+To optimize the XGBoost model, we performed a *random grid search* with cross-validation over a range of hyperparameters. Given the computational cost of a full grid search, we implemented a random sampling strategy. The parameters explored are as follows:
 
 - **Learning Rate (eta)**:: (0.01, 0.05, **0.1**, 0.3, 0.5)  
-  The learning rate controls the contribution of each tree. A smaller eta can lead to better generalization but requires more trees to achieve convergence.
+  The learning rate controls the contribution of each tree. A smaller eta can lead to better generalization but requires more iterations to achieve convergence.
 
 - **Tree Depth**: (1, 3, **6**, 9)  
   The maximum depth of each tree. This parameter controls the complexity of the individual trees, with deeper trees modeling more complex relationships.
@@ -719,7 +719,7 @@ To optimize the XGBoost model, we performed a *random grid search* over a range 
   The minimum sum of instance weight (hessian) in a child. It helps control overfitting by ensuring that trees grow only when a sufficient number of data points are present in a split.
 
 - **Data Sample**: (0.6, **0.8**, 1.0)  
-  The proportion of rows used for training each tree. Lower values help reduce overfitting by introducing randomness, but too low may hurt performance.
+  The proportion of rows used for training each tree. Lower values help reduce overfitting by introducing randomness and make computation shorter.
 
 - **Column Sample**: (**0.6**, 0.8, 1.0)  
   The proportion of features used for training each tree. It helps prevent overfitting by limiting the model’s reliance on any particular feature.
@@ -741,27 +741,27 @@ kable(model_comparison_xgb, caption = "XGBoost Performance", align = "l", col.na
 ```
 
 We can observe that XGBoost outperforms GBMs and to better understand why, we examined the models variable importance.
-The variable importance analysis for the XGBoost model reveals slight differences compared to the GBM model. For example the `district` column holds more importance than the `regio3` column (subdistricts), suggesting that we can potentially remove `regio3` without significant loss of information.
+The variable importance analysis for the XGBoost model reveals slight differences compared to the GBM model. For example the `district` column holds more importance than the `regio3` column (subdistricts), suggesting that we can potentially remove `regio3` without significant loss of information as we did in our random forest.
 
 ```{r xgboostVarImportance, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="XGB Variable Influence", fig.align='center', fig.width=5, fig.height=4}
 img <- readPNG("./documents/images/xgb_variable_influence.png")
 grid::grid.raster(img)
 ```
 
-XGBoost delivered the best results out of all methods tested, even with the default parameters. This demonstrates XGBoosts the ability to capture the most variance in the data while avoiding overfitting and XGBoosts state-of-the-art model status.
+XGBoost delivered the best results out of all methods tested, even with the default parameters. This demonstrates XGBoosts ability to capture the most variance in the data while avoiding overfitting and XGBoosts state-of-the-art model status.
 
 
 
 ## Outlier Handling
 
-The dataset has a significant variance in prices, with few high-priced apartments that create a *long-tail* distribution. To assess the robustness of our models against outliers, we will begin by examining the true vs. predicted values for our best performing model, which was XGBoost.
+The dataset has a significant variance in prices, with a few high-priced apartments that create a *long-tail* distribution. To assess the robustness of our models against outliers, we will begin by examining the true vs. predicted values for our best performing model, which was XGBoost.
 
 ```{r xgbTruePredicted, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="True vs Predicted Base Rent", fig.align='center', fig.width=6, fig.height=4}
 img <- readPNG("./documents/images/xgb_true_predicted.png")
 grid::grid.raster(img)
 ```
 
-The plot reveals that the model performs well for most non-outlier base rents, with predictions closely aligned to the true values. However, there is noticeable underprediction for base rents above 2,600, while higher base rents tend to have wider variation in predictions. Despite this, the model demonstrates some robustness against outliers.  
+The plot reveals that the model performs well for most non-outlier base rents, with predictions closely aligned to the true values. However, there is noticeable underprediction for base rents above 2,600, higher base rents tend to have wider variation in predictions. Despite this, the model demonstrates some robustness against outliers.  
 
 To further evaluate the robustness of the model, we propose the following tests:  
 
@@ -777,15 +777,14 @@ One alternative approach we will not consider in this report is training the mod
 There are several reasons we think it might be benficial to get better predictions for more common apartments:
 
 - Outliers may represent corrupted data that do not occur in real-world scenarios.  
-- Most potential users of the model may not be wealthy and are likely more interested in predictions for mid-range apartments.  
-- Prioritizing accuracy for mid-range apartments aligns better with the needs of the target audience, ensuring more practical and relevant predictions.  
+- Most potential users of the model may not be wealthy and are likely more interested in predictions for mid-range apartments. Prioritizing accuracy for mid-range apartments aligns better with the needs of the target audience, ensuring more practical and relevant predictions.  
 
 By focusing on this approach, we aim to enhance the reliability and usability of our predictions.
 
 
 ### Outlier Removal
 
-To detect outlier apartments, we use a boxplot logic. After this definition, all values bigger or smaller than 1.5 times the interquartile range from the median get excluded. The following plot shows the `baseRent` outliers for our whole dataset:
+To detect outlier apartments, we use a boxplot logic. After this definition, all values smaller (Q1) or bigger (Q3) than 1.5 times the interquartile range plus quartile get excluded. The following plot shows the `baseRent` outliers for our whole dataset:
 
 ```{r boxplotBaseRent, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Boxplot for Base Rent", fig.align='center', fig.width=5, fig.height=4}
 ggplot(berlin_data_for_model, aes(x = baseRent)) + 
@@ -795,22 +794,19 @@ ggplot(berlin_data_for_model, aes(x = baseRent)) +
           axis.ticks.y = element_blank())
 ```
 
-
-We can see from the boxplot, that there are only expensive apartments that are considered outliers. Therefore it is only necessary to calculate the upper bound to define it as an outlier border.
-
 ```{r outlierBoundCalculation, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 iqr <- IQR(berlin_data_for_model$baseRent)
 q3 <- quantile(berlin_data_cleaned$baseRent, 0.75)
 upper_bound <- unname(q3 + (1.5 * iqr))
 ```
-When calculating the upper bound, all flats with a price higher than `r toString(upper_bound)`€ should be excluded.
+We can see from the boxplot, that there are only expensive apartments that are considered outliers. Therefore it is only necessary to calculate the upper bound to define it as an outlier border. When calculating the upper bound, all flats with a price higher than `r toString(upper_bound)`€ should be excluded.
 
 
 ### Model Performance
 
-Our initial hypothesis is that models that are better equipped to handle noise, such as random forests, will show smaller performance increases when trained with and without outliers, when the evaluation is done on outlier free test data. Models like Gradient Boosting, Regression Trees and XGBoost often benefit from the removal of outliers since their algorithms are sensitive to extreme values that can influence the structure of the decision boundaries or the boosting process. These models can more effectively generalize when the noise introduced by outliers is reduced.
+Our initial hypothesis is that models that are better equipped to handle noise, such as random forests, will show smaller performance increases when trained with and without outliers, when the evaluation is done on outlier-free test data. Models like Gradient Boosting, Regression Trees and XGBoost often benefit from the removal of outliers since their algorithms are sensitive to extreme values that can influence the structure of the decision boundaries or the boosting process. These models can more effectively generalize when the noise introduced by outliers is reduced.
 
-It is important to note that we did not optimize the hyperparameters for the models trained on the dataset without outliers. All models were evaluated on outlier free data. The error metrics are presented in the table below:
+It is important to note that we did not optimize the hyperparameters for the models trained on the dataset without outliers. The error metrics, for all models evaluated on outlier-free data, are presented in the table below:
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=!full_refit}
 model_comparison_outlier <- data.frame(
@@ -826,7 +822,7 @@ kable(model_comparison_outlier, caption = "Comparison of Model Performance Metri
 ```
 
 Here we can see that all methods significantly improved on the outlier-free data when we trained them without outliers. 
-The order of the models, based on their improvement in RMSE (italic) after removing outliers, is as follows:
+The order of the models, based on their improvement in RMSE (*italic*) after removing outliers, is as follows:
 
 1. Gradient Boosting *30*
 2. Regression Tree *23*
@@ -839,7 +835,7 @@ Regression Trees, while also sensitive to outliers, tend to generalize better th
 XGBoost employs regularization techniques that can reduce the impact of outliers, but it still performs best when noise is minimized.  
 SVM and Random Forest, on the other hand, are less sensitive to individual data points but can still be affected by outliers. Random Forest, being an ensemble method, is somewhat more robust due to averaging over many trees, but it too benefits from cleaner data for optimal performance.  
 
-In summary, the degree of improvement in RMSE across different models when outliers are removed is likely related to the inherent characteristics of each model in handling outliers and noise. Models that rely more heavily on learning from the Variance, such as Gradient Boosting, show the greatest improvement when outliers are removed.
+In summary, the degree of improvement in RMSE across different models when outliers are removed is likely related to the inherent characteristics of each model in handling outliers and noise. Models that rely more heavily on learning from errors, such as Gradient Boosting, show the greatest improvement when outliers are removed.
 
 
 # References
